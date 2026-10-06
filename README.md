@@ -11,6 +11,8 @@ npm install
 npm run dev
 \`\`\`
 
+> **面向岗位**：本项目用于展示通用后端工程能力（分层架构、服务端 API、数据库建模/迁移、缓存、Docker 容器化、CI/CD、自动化测试）与 Agent 开发能力（LLM 接入、RAG、容错降级）。详细能力对照见 [ARCHCHITECTURE.md](./ARCHITECTURE.md) 第 6 节。
+
 ## 功能模块
 
 | 模块 | 说明 |
