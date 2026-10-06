@@ -1,0 +1,7 @@
+node_modules
+.vercel
+.tanstack
+.grok
+.git
+npm-debug.log
+*.md
