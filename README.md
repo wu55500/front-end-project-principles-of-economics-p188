@@ -1,3 +1,6 @@
+扣子做的文件缺陷(和接入OpenClaw的消息记录 - 扣子
+https://www.coze.cn/s/Ym4mDDKAYeA/)：用的vercel，我改为用Linux＋nginx＋git装docker，需要买阿里云/腾讯云服务器
+
 # 经济学原理互动教学应用（P188）
 
 曼昆《经济学原理》第 9 章应用：国际贸易 · 出口补贴 · "不公平竞争论" 的交互式教学网页。
