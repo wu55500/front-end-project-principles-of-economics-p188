@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>不公平竞争论 · 互动图解 | Isoland vs Neighborland</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+<style>
+:root{--bg:#0b1020;--card:rgba(255,255,255,.05);--line:rgba(255,255,255,.09);
+ --tx:#e8edf7;--sub:#94a3b8;--grn:#34d399;--red:#f87171;--blu:#60a5fa;--org:#fbbf24;--cy:#38bdf8}
+*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}
+body{background:radial-gradient(1100px 520px at 85% -10%,rgba(56,189,248,.14),transparent 60%),
+ radial-gradient(900px 480px at -10% 25%,rgba(52,211,153,.10),transparent 60%),var(--bg);
+ color:var(--tx);font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;line-height:1.75}
+.wrap{max-width:1100px;margin:0 auto;padding:0 22px}
+.hero{padding:70px 0 30px;text-align:center}
+.kicker{display:inline-block;font-size:13px;letter-spacing:.12em;color:var(--cy);
+ border:1px solid rgba(56,189,248,.35);padding:6px 16px;border-radius:999px;background:rgba(56,189,248,.08)}
+h1{font-size:clamp(34px,6vw,54px);margin:18px 0 10px;font-weight:900;
+ background:linear-gradient(92deg,#7dd3fc,#34d399,#fbbf24);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{color:var(--sub);font-size:17px;max-width:780px;margin:0 auto}
+.chip{display:inline-block;padding:5px 14px;margin:4px;border-radius:999px;font-size:12.5px;color:#cbd5e1;
+ border:1px solid var(--line);background:rgba(255,255,255,.04)}
+nav{position:sticky;top:0;z-index:60;background:rgba(11,16,32,.78);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;gap:4px;padding:10px 22px;overflow-x:auto}
+nav a{color:var(--sub);text-decoration:none;font-size:14px;padding:7px 15px;border-radius:999px;white-space:nowrap}
+nav a:hover{color:#fff;background:rgba(255,255,255,.09)}
+section{padding:58px 0 10px}h2{font-size:27px;font-weight:800;margin-bottom:6px}
+h2 .no{color:var(--cy);font-family:ui-monospace,monospace;margin-right:10px}
+.sec-sub{color:var(--sub);margin-bottom:24px;font-size:15px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:26px;backdrop-filter:blur(8px)}
+.grid2{display:grid;grid-template-columns:1.55fr 1fr;gap:22px;align-items:start}
+@media(max-width:920px){.grid2{grid-template-columns:1fr}}
+.step{display:flex;gap:14px;padding:13px 0;border-bottom:1px dashed rgba(255,255,255,.08)}
+.step:last-child{border-bottom:none}
+.step .b{flex:0 0 30px;height:30px;border-radius:10px;display:grid;place-items:center;font-weight:800;
+ background:linear-gradient(135deg,#38bdf8,#34d399);color:#07101d}
+.role{display:flex;gap:12px;padding:12px 0;border-bottom:1px dashed rgba(255,255,255,.08)}
+.role:last-child{border-bottom:none}.role .em{font-size:26px}
+.role b{display:block;font-size:14.5px}.role span{font-size:13px;color:var(--sub)}
+.btn{cursor:pointer;border:none;border-radius:13px;padding:11px 20px;font-size:14px;font-weight:700;color:#08101f;
+ background:linear-gradient(92deg,#7dd3fc,#34d399);transition:.2s}
+.btn:hover{transform:translateY(-1px);filter:brightness(1.08)}
+.btn.ghost{background:rgba(255,255,255,.09);color:var(--tx);border:1px solid var(--line)}
+.btn.on{outline:2px solid #34d399}
+canvas{width:100%;display:block}
+#sdCanvas{height:440px}#flowCanvas{height:430px}#welfareChart{height:430px}
+.stat{display:flex;justify-content:space-between;align-items:center;padding:11px 0;
+ border-bottom:1px dashed rgba(255,255,255,.08);font-size:14.5px}
+.stat:last-child{border-bottom:none}
+.stat .v{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+.v.up{color:var(--grn)}.v.down{color:var(--red)}
+.v.net{background:linear-gradient(92deg,#7dd3fc,#34d399);-webkit-background-clip:text;background-clip:text;color:transparent;font-size:26px}
+input[type=range]{width:100%;accent-color:#34d399;margin:10px 0 2px}
+.lbl{font-size:13px;color:var(--sub)}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block;margin-right:6px;vertical-align:-1px}
+.legend span{font-size:12.5px;color:var(--sub);border:1px solid var(--line);border-radius:999px;padding:4px 11px}
+.tots{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0}
+@media(max-width:640px){.tots{grid-template-columns:1fr}}
+.tot{border:1px solid var(--line);border-radius:16px;padding:14px;text-align:center;background:rgba(255,255,255,.03)}
+.tot b{font-size:24px;font-variant-numeric:tabular-nums}
+.tot span{display:block;font-size:12.5px;color:var(--sub);margin-top:2px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.tab{cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--sub);
+ border-radius:999px;padding:8px 18px;font-size:14px;font-weight:600;transition:.2s}
+.tab.on{background:linear-gradient(92deg,#7dd3fc,#34d399);color:#08101f;border-color:transparent}
+#scenGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.scen h3{font-size:17px;margin-bottom:8px}
+.scen svg{width:100%;height:auto;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:14px;margin-bottom:10px}
+.blk{border:1px dashed rgba(255,255,255,.14);border-radius:12px;padding:9px 13px;font-size:13.5px;margin-top:8px;color:#cbd5e1}
+.blk b{color:#e8edf7}
+.qz{margin-bottom:18px}.qz h3{font-size:16.5px;margin-bottom:12px}
+.opt{display:block;width:100%;text-align:left;background:rgba(255,255,255,.05);border:1px solid var(--line);
+ color:var(--tx);border-radius:13px;padding:12px 16px;margin:8px 0;cursor:pointer;font-size:14.5px}
+.opt:hover{background:rgba(255,255,255,.1)}
+.opt.ok{background:rgba(52,211,153,.16);border-color:rgba(52,211,153,.6)}
+.opt.no{background:rgba(248,113,113,.14);border-color:rgba(248,113,113,.55);animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.exp{display:none;font-size:13.5px;color:#a7f3d0;background:rgba(52,211,153,.08);
+ border:1px dashed rgba(52,211,153,.4);border-radius:12px;padding:10px 14px;margin-top:8px}
+.quote{border-left:4px solid var(--grn);background:rgba(52,211,153,.07);padding:20px 24px;
+ border-radius:0 18px 18px 0;font-size:18px;font-weight:700;margin:8px 0 22px}
+.caveat{font-size:14px;color:var(--sub);border:1px dashed rgba(148,163,184,.4);border-radius:14px;padding:14px 18px}
+footer{padding:44px 0 60px;text-align:center;color:#64748b;font-size:13px}
+#flowCaption{margin-top:14px;font-size:14px;color:#cbd5e1;background:rgba(255,255,255,.04);
+ border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+.toast{position:fixed;left:50%;bottom:34px;transform:translateX(-50%) translateY(20px);opacity:0;
+ background:#0f172aee;border:1px solid var(--grn);color:#a7f3d0;padding:10px 22px;border-radius:999px;
+ font-size:14px;transition:.3s;z-index:99}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<header class="hero wrap">
+ <span class="kicker">曼昆《经济学原理》微观分册 · 第9章 · 贸易保护的理由 ④</span>
+ <h1>不公平竞争论</h1>
+ <p class="lead">"只有各国按同样的规则行事，自由贸易才是公正的。"——听起来无比正确？<br>
+ 曼昆说：先别急着竖关税墙，我们算三笔账。Isoland 🆚 Neighborland 纺织品案 · 互动图解（对应课本 P177 图 / 笔记"画图讲"）</p>
+ <div><span class="chip">📊 ECharts</span><span class="chip">🎨 Canvas ×2</span>
+ <span class="chip">🎚️ 滑杆联动</span><span class="chip">🗂️ Tab 筛选</span>
+ <span class="chip">🧠 测验</span><span class="chip">🛡️ 防字冲突 v2.1</span></div>
+</header>
+
+<nav><div class="wrap">
+ <a href="#story">① 故事与资金流</a><a href="#chart">② 画图讲（P177同款）</a>
+ <a href="#welfare">③ 三种选择算总账</a><a href="#quiz">④ 测一测</a><a href="#final">⑤ 结论</a>
+</div></nav>
+
+<noscript><div class="wrap"><div class="card" style="margin-top:20px">⚠️ 当前浏览器禁用了 JS：文字讲解与情景卡（SVG）仍可完整阅读；滑杆 / ECharts / 动画需要启用 JS。</div></div></noscript>
+
+<!-- ① 故事 -->
+<section id="story"><div class="wrap">
+ <h2><span class="no">01</span>先把故事看懂：谁在给谁发红包？</h2>
+ <p class="sec-sub">课本划线结论：<b style="color:#a7f3d0">"Isoland 应该感谢 Neighborland，而不是反对其补贴行为。"</b>为什么？先看钱的流向。</p>
+ <div class="grid2">
+  <div class="card">
+   <div class="step"><div class="b">1</div><div><b>NL 政府出手：</b>给本国纺织企业大额减税补贴 → 成本骤降，敢卖低价。</div></div>
+   <div class="step"><div class="b">2</div><div><b>便宜货涌入：</b>Isoland 市场纺织品大跌价，消费者疯狂买入，进口大增。</div></div>
+   <div class="step"><div class="b">3</div><div><b>IS 工厂喊冤：</b>"他们被政府充值了，不公平！快保护我们！"——这就是"不公平竞争论"。</div></div>
+   <div class="step"><div class="b">4</div><div><b>曼昆反问：</b>消费者省的钱和工厂亏的钱哪个多？这份便宜到底谁出钱？👇</div></div>
+  </div>
+  <div class="card">
+   <div class="role"><span class="em">🏛️</span><div><b>NL 政府</b><span>用国家机器给产业"充值"</span></div></div>
+   <div class="role"><span class="em">👨‍👩‍👧</span><div><b>NL 纳税人</b><span>真正的买单人！补贴=少收的税</span></div></div>
+   <div class="role"><span class="em">🛍️</span><div><b>IS 消费者（我们）</b><span>低价买衣服，捡大便宜</span></div></div>
+   <div class="role"><span class="em">🏭</span><div><b>IS 纺织厂</b><span>唯一受伤者</span></div></div>
+  </div>
+ </div>
+ <div class="card" style="margin-top:22px">
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+   <button class="btn on" id="btnAccept">🟢 情景A：接受补贴</button>
+   <button class="btn ghost" id="btnTariff">🧱 情景B：报复性关税</button>
+   <button class="btn ghost" id="btnReplay">↻ 重播</button>
+  </div>
+  <canvas id="flowCanvas"></canvas>
+  <div id="flowCaption"></div>
+ </div>
+</div></section>
+
+<!-- ② 画图讲 -->
+<section id="chart"><div class="wrap">
+ <h2><span class="no">02</span>画图讲：一张供需图，看穿"公平"之争</h2>
+ <p class="sec-sub">你笔记里写的"<b>画图讲</b>"、课本 P177 配图同款逻辑。拖动滑杆改变补贴强度，看两块面积怎么变。</p>
+ <div class="card">
+  <div class="legend">
+   <span><i style="background:#38bdf8"></i>需求 D</span><span><i style="background:#fbbf24"></i>供给 S</span>
+   <span><i style="background:rgba(52,211,153,.6)"></i>消费者剩余增加</span>
+   <span><i style="background:rgba(248,113,113,.6)"></i>生产者剩余减少</span>
+   <span style="color:#7dd3fc">假设：D: Q=120−P，S: Q=P−20，P₁=60</span>
+  </div>
+  <div class="grid2">
+   <canvas id="sdCanvas"></canvas>
+   <div>
+    <label class="lbl">🧪 NL 补贴强度 t（元/件，把价格压低 t 元）</label>
+    <input type="range" class="tSlider" min="0" max="30" step="1" value="20">
+    <div class="stat"><span>补贴后价格 P₂</span><span class="v" style="color:#7dd3fc" id="tChip">40</span></div>
+    <div class="stat"><span>🛍️ 消费者剩余变化</span><span class="v up" id="vCS">+0</span></div>
+    <div class="stat"><span>🏭 生产者剩余变化</span><span class="v down" id="vPS">−0</span></div>
+    <div class="stat"><span>🇮🇸 IS 总福利变化</span><span class="v net" id="vNET">+0</span></div>
+    <p class="lbl" style="margin-top:12px">🔑 降价让<b style="color:#a7f3d0">每个买家</b>都受益（大梯形），生产者只损失其中一块。绿 − 红 = <b>净赚</b>。且补贴的钱是 NL 纳税人出的——这不是"公平问题"，是"收红包问题"。</p>
+    <button class="btn" id="replaySD" style="margin-top:12px">▶ 重新播放画图过程</button>
+   </div>
+  </div>
+ </div>
+</div></section>
+
+<!-- ③ 三种选择 -->
+<section id="welfare"><div class="wrap">
+ <h2><span class="no">03</span>三种选择，算总账（Tab 筛选 + ECharts）</h2>
+ <p class="sec-sub">沿用 Tab 筛选交互：先点卡片看结论，再用 ECharts 验证数字（与滑杆联动）。</p>
+ <div class="tabs">
+  <button class="tab on" data-s="all">全部</button>
+  <button class="tab" data-s="accept">🙏 接受补贴</button>
+  <button class="tab" data-s="tariff">🧱 报复关税</button>
+  <button class="tab" data-s="ban">🚫 禁止进口</button>
+ </div>
+ <div id="scenGrid">
+  <div class="card scen" data-s="accept">
+   <h3>🙏 A 接受补贴（最优）</h3>
+   <svg viewBox="0 0 240 160">
+    <line x1="24" y1="10" x2="24" y2="144" stroke="#8fa3bd"/><line x1="24" y1="144" x2="232" y2="144" stroke="#8fa3bd"/>
+    <line x1="24" y1="18" x2="204" y2="144" stroke="#38bdf8" stroke-width="2"/>
+    <line x1="24" y1="123" x2="189" y2="8" stroke="#fbbf24" stroke-width="2"/>
+    <line x1="24" y1="81" x2="232" y2="81" stroke="#94a3b8" stroke-dasharray="5 4"/>
+    <line x1="24" y1="102" x2="232" y2="102" stroke="#7dd3fc" stroke-dasharray="5 4"/>
+    <polygon points="24,102 144,102 114,81 24,81" fill="rgba(52,211,153,.35)" stroke="rgba(52,211,153,.9)"/>
+    <polygon points="24,102 54,102 84,81 24,81" fill="rgba(248,113,113,.35)" stroke="rgba(248,113,113,.9)"/>
+    <text x="30" y="77" fill="#e2e8f0" font-size="10">P₁=60</text><text x="30" y="113" fill="#7dd3fc" font-size="10">P₂=40</text>
+    <text x="196" y="140" fill="#38bdf8" font-size="10">D</text><text x="193" y="16" fill="#fbbf24" font-size="10">S</text>
+    <text x="92" y="97" fill="#a7f3d0" font-size="9.5">+1400</text><text x="30" y="97" fill="#fecaca" font-size="9.5">−600</text>
+    <text x="150" y="20" fill="#a7f3d0" font-size="11" font-weight="bold">净 +800 ✅</text>
+   </svg>
+   <div class="blk">👍 <b>谁赚：</b>消费者 +1400</div>
+   <div class="blk">😢 <b>谁亏：</b>本国工厂 −600；NL 纳税人图外买单</div>
+   <div class="blk">🏁 <b>结局：</b>Isoland 净 +800，福利上升</div>
+  </div>
+  <div class="card scen" data-s="tariff">
+   <h3>🧱 B 征收等额关税 t=20</h3>
+   <svg viewBox="0 0 240 160">
+    <line x1="24" y1="10" x2="24" y2="144" stroke="#8fa3bd"/><line x1="24" y1="144" x2="232" y2="144" stroke="#8fa3bd"/>
+    <line x1="24" y1="18" x2="204" y2="144" stroke="#38bdf8" stroke-width="2"/>
+    <line x1="24" y1="123" x2="189" y2="8" stroke="#fbbf24" stroke-width="2"/>
+    <line x1="24" y1="81" x2="232" y2="81" stroke="#94a3b8" stroke-dasharray="5 4"/>
+    <line x1="24" y1="102" x2="232" y2="102" stroke="#7dd3fc" stroke-dasharray="5 4"/>
+    <rect x="84" y="81" width="30" height="21" fill="rgba(96,165,250,.45)" stroke="#60a5fa"/>
+    <polygon points="114,81 144,102 114,102" fill="rgba(251,191,36,.5)"/>
+    <polygon points="84,81 54,102 84,102" fill="rgba(251,191,36,.5)"/>
+    <text x="30" y="77" fill="#e2e8f0" font-size="10">P国内=60</text><text x="30" y="113" fill="#7dd3fc" font-size="10">P世界=40</text>
+    <text x="86" y="95" fill="#dbeafe" font-size="9">关税400</text>
+    <text x="146" y="99" fill="#fde68a" font-size="9">无谓损失</text>
+    <text x="150" y="20" fill="#fde68a" font-size="11" font-weight="bold">净 ±0 😐</text>
+   </svg>
+   <div class="blk">👍 <b>谁赚：</b>政府收关税 +400</div>
+   <div class="blk">😢 <b>谁亏：</b>消费者红包全没了；无谓损失 −400</div>
+   <div class="blk">🏁 <b>结局：</b>比"接受补贴"白白少赚 800，还得罪人</div>
+  </div>
+  <div class="card scen" data-s="ban">
+   <h3>🚫 C 完全禁止进口（最差）</h3>
+   <svg viewBox="0 0 240 160">
+    <line x1="24" y1="10" x2="24" y2="144" stroke="#8fa3bd"/><line x1="24" y1="144" x2="232" y2="144" stroke="#8fa3bd"/>
+    <line x1="24" y1="18" x2="204" y2="144" stroke="#38bdf8" stroke-width="2"/>
+    <line x1="24" y1="123" x2="189" y2="8" stroke="#fbbf24" stroke-width="2"/>
+    <line x1="24" y1="81" x2="232" y2="81" stroke="#94a3b8" stroke-dasharray="5 4"/>
+    <line x1="24" y1="70.5" x2="232" y2="70.5" stroke="#fbbf24" stroke-dasharray="5 4"/>
+    <polygon points="99,70.5 99,81 114,81" fill="rgba(251,191,36,.5)"/>
+    <polygon points="84,70.5 99,70.5 84,81" fill="rgba(251,191,36,.5)"/>
+    <text x="30" y="66" fill="#fbbf24" font-size="10">P*=70 自给自足</text>
+    <text x="116" y="78" fill="#fde68a" font-size="9">双损失</text>
+    <text x="150" y="20" fill="#f87171" font-size="11" font-weight="bold">净 −100 ❌</text>
+   </svg>
+   <div class="blk">👍 <b>谁赚：</b>本国工厂 +450</div>
+   <div class="blk">😢 <b>谁亏：</b>消费者 −550</div>
+   <div class="blk">🏁 <b>结局：</b>净 −100，最差选择</div>
+  </div>
+ </div>
+ <div class="card" style="margin-top:20px">
+  <label class="lbl">🧪 补贴强度 t（与第②节联动，t=20 时的数字见情景卡）</label>
+  <input type="range" class="tSlider" min="0" max="30" step="1" value="20">
+  <div id="welfareChart"></div>
+ </div>
+ <div class="tots">
+  <div class="tot" id="tot1"></div><div class="tot" id="tot2"></div><div class="tot" id="tot3"></div>
+ </div>
+ <p class="lbl">* 数字基于第②节供需假设（D: Q=120−P，S: Q=P−20），把滑杆拉到 0 可看"没有补贴"的对照；重点是相对大小：<b>绿 > 红，接受补贴永远不亏</b>。</p>
+</div></section>
+
+<!-- ④ 测验 -->
+<section id="quiz"><div class="wrap">
+ <h2><span class="no">04</span>测一测：你真的懂了吗？</h2>
+ <p class="sec-sub">三道全对，这页书就拿下了。</p>
+ <div id="quizBox"></div>
+</div></section>
+
+<!-- ⑤ 结论 -->
+<section id="final"><div class="wrap">
+ <h2><span class="no">05</span>结论 & 30 秒讲解词</h2>
+ <div class="quote">"Isoland 应该感谢 Neighborland 的补贴，而不是反对它。<br>真正为这份便宜买单的，是 Neighborland 的纳税人。"</div>
+ <div class="grid2" style="grid-template-columns:repeat(3,1fr);gap:16px">
+  <div class="card"><b>✅ 算总账</b><p class="lbl">消费者剩余增加 > 生产者剩余损失 → Isoland 总福利上升。</p></div>
+  <div class="card"><b>💸 找真凶</b><p class="lbl">补贴来自 NL 减税 → 买单的是 NL 纳税人，这是"外国红包"。</p></div>
+  <div class="card"><b>🧱 别报复</b><p class="lbl">加关税=扔掉红包，消费者损失更大，还可能引发贸易战。</p></div>
+ </div>
+ <div class="card" style="margin-top:18px">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+   <b>🎤 30 秒讲给同学（可复制）</b><button class="btn" id="copyBtn">📋 复制讲解词</button>
+  </div>
+  <p id="scriptTxt" style="margin-top:10px;font-size:14px;color:#cbd5e1">隔壁 Neighborland 用他们纳税人的钱补贴本国纺织厂，于是衣服便宜地卖到我们 Isoland：我们消费者省下的钱，比我们工厂亏的多，所以 Isoland 总福利反而上升了。这份便宜真正出钱的是 Neighborland 的纳税人——等于外国人给我们发红包。所以正确姿势不是喊"不公平"加关税报复，而是道谢收下：一报复，红包没了，消费者吃亏，还可能招来贸易战，双输。真要抗议，也轮不到我们——该上街的是 Neighborland 的纳税人。</p>
+ </div>
+ <p class="caveat" style="margin-top:18px">⚠️ 严谨补充：曼昆不是说"补贴是好事"。对 Neighborland 自己，补贴很可能是扭曲生产、浪费纳税人钱的坏政策——但那是<b>他们</b>的账。国际贸易分析只回答：<b>这个政策让"我们"的总福利变大还是变小？</b>顺带预告：下一节 9.3.5"作为讨价还价筹码的保护论"会告诉你——用威胁去谈判，威胁可能弄假成真。</p>
+</div></section>
+
+<footer>基于 曼昆《经济学原理（微观分册）》第9章 9.3.4「不公平竞争论」制作 · 纯前端单文件 · ECharts + Canvas · v2.1 防冲突版<br>数字为教学示意，重点看结构关系</footer>
+
+<script>
+/* ============================================================
+   v2.1 · 块状结构（每块用 [BLOCK:名] 标记，方便日后精准替换）
+============================================================ */
+
+/* ============ [BLOCK:UTILS] 工具函数 ============ */
+const $=s=>document.querySelector(s),$$=s=>document.querySelectorAll(s);
+const fmt=n=>Math.round(n).toLocaleString('zh-CN');
+function countUp(el,to,prefix=''){const from=+el.dataset.v||0,t0=performance.now(),dur=700;
+ (function f(t){const k=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-k,3);
+  el.textContent=prefix+fmt(from+(to-from)*e);
+  if(k<1)requestAnimationFrame(f);else el.dataset.v=to;})(t0);}
+function fit(c){const d=window.devicePixelRatio||1,r=c.getBoundingClientRect();
+ c.width=r.width*d;c.height=r.height*d;const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);return x;}
+function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);
+ ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+/* 防冲突引擎三件套：量字宽 / 矩形碰撞 / 标签外框 */
+const mCan=document.createElement('canvas'),mctx=mCan.getContext('2d');
+function tw(text,font){mctx.font=font;return mctx.measureText(text).width;}
+const hit=(a,b)=>!(a.x2<b.x1||b.x2<a.x1||a.y2<b.y1||b.y2<a.y1);
+function labelBox(text,x,y,font){const w=tw(text,font);return{x1:x-w/2-7,y1:y-11,x2:x+w/2+7,y2:y+11};}
+
+/* ============ [BLOCK:STATE] 全局状态：补贴强度 ============ */
+let T=20;const P1=60;
+function calc(){const t=T;
+ const cs=t*(120+t)/2,ps=t*(80-t)/2,gov=t*20,dwl=t*t;
+ return{cs,ps,gov,dwl,net1:cs-ps,net2:gov-dwl};}
+
+/* ============ [BLOCK:SD-CANVAS] ② 供需图（P177同款） ============ */
+const sdCanvas=$('#sdCanvas');let sctx=fit(sdCanvas);
+function line(ctx,x1,y1,x2,y2,c,w=2,dash=null){ctx.save();ctx.strokeStyle=c;ctx.lineWidth=w;
+ if(dash)ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.restore();}
+let sdX,sdY;
+function drawSD(a=1){
+ const ctx=sctx,W=sdCanvas.clientWidth,H=sdCanvas.clientHeight;
+ ctx.clearRect(0,0,W,H);
+ const M={l:56,r:26,t:28,b:46};
+ sdX=q=>M.l+q/140*(W-M.l-M.r);sdY=p=>H-M.b-p/130*(H-M.t-M.b);
+ ctx.strokeStyle='rgba(148,163,184,.09)';ctx.lineWidth=1;
+ for(let q=0;q<=140;q+=20){ctx.beginPath();ctx.moveTo(sdX(q),sdY(0));ctx.lineTo(sdX(q),sdY(130));ctx.stroke();}
+ for(let p=0;p<=130;p+=20){ctx.beginPath();ctx.moveTo(sdX(0),sdY(p));ctx.lineTo(sdX(140),sdY(p));ctx.stroke();}
+ ctx.strokeStyle='#8fa3bd';ctx.lineWidth=1.6;
+ ctx.beginPath();ctx.moveTo(sdX(0),sdY(0));ctx.lineTo(sdX(0),sdY(128));ctx.stroke();
+ ctx.beginPath();ctx.moveTo(sdX(0),sdY(0));ctx.lineTo(sdX(138),sdY(0));ctx.stroke();
+ ctx.fillStyle='#94a3b8';ctx.font='12px sans-serif';ctx.textAlign='left';
+ ctx.fillText('价格 P(元)',8,sdY(128));ctx.fillText('数量 Q(件)',sdX(138)-58,H-12);
+ line(ctx,sdX(0),sdY(120),sdX(120),sdY(0),'#38bdf8',2.6);
+ line(ctx,sdX(0),sdY(20),sdX(110),sdY(130),'#fbbf24',2.6);
+ ctx.font='bold 13px sans-serif';
+ ctx.fillStyle='#38bdf8';ctx.fillText('D 需求',sdX(96),sdY(24)+16);
+ ctx.fillStyle='#fbbf24';ctx.fillText('S 供给',sdX(80),sdY(104)-8);
+ line(ctx,sdX(0),sdY(60),sdX(140),sdY(60),'rgba(226,232,240,.55)',1.5,[6,5]);
+ ctx.fillStyle='#e2e8f0';ctx.font='12px sans-serif';ctx.fillText('P₁=60 原世界价',sdX(88),sdY(60)-7);
+ const P2=P1-T;
+ if(T>0){
+  line(ctx,sdX(0),sdY(P2),sdX(140),sdY(P2),'rgba(125,211,252,.8)',1.5,[6,5]);
+  ctx.fillStyle='#7dd3fc';ctx.fillText(`P₂=${P2} 补贴后`,sdX(88),sdY(P2)+16);
+  ctx.save();ctx.globalAlpha=a;
+  const poly=(pts,fill,stroke)=>{ctx.beginPath();pts.forEach((p,i)=>{const X=sdX(p[0]),Y=sdY(p[1]);i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);});
+   ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.strokeStyle=stroke;ctx.setLineDash([5,4]);ctx.lineWidth=1.6;ctx.stroke();};
+  poly([[0,P2],[60+T,P2],[60,60],[0,60]],'rgba(52,211,153,.32)','rgba(52,211,153,.95)');
+  poly([[0,P2],[40-T,P2],[40,60],[0,60]],'rgba(248,113,113,.32)','rgba(248,113,113,.95)');
+  const w=calc();
+  ctx.font='bold 12.5px sans-serif';ctx.textAlign='center';ctx.lineJoin='round';
+  const halo=(txt,x,y,c)=>{ctx.lineWidth=4;ctx.strokeStyle='rgba(11,16,32,.85)';ctx.strokeText(txt,x,y);
+   ctx.fillStyle=c;ctx.fillText(txt,x,y);};
+  halo(`消费者剩余 +${fmt(w.cs)}`,sdX(34),sdY(P2+(60-P2)*.68),'#a7f3d0');
+  halo(`生产者剩余 −${fmt(w.ps)}`,sdX(12),sdY(P2+(60-P2)*.28),'#fecaca');
+  [[60,60],[40,60],[60+T,P2],[40-T,P2]].forEach(d=>{ctx.beginPath();ctx.arc(sdX(d[0]),sdY(d[1]),4,0,7);ctx.fillStyle='#fff';ctx.fill();});
+  const nw=186,nh=40,nx=sdX(24),ny=sdY(126);
+  roundRect(ctx,nx,ny,nw,nh,10);ctx.fillStyle='rgba(52,211,153,.16)';ctx.fill();
+  ctx.strokeStyle='rgba(52,211,153,.7)';ctx.lineWidth=1.4;ctx.stroke();
+  ctx.fillStyle='#a7f3d0';ctx.font='bold 14px sans-serif';
+  ctx.fillText(`Isoland 净福利 +${fmt(w.net1)}`,nx+nw/2,ny+26);
+  ctx.restore();
+ }
+}
+let sdAnimId;
+function playSD(){cancelAnimationFrame(sdAnimId);const t0=performance.now(),dur=900;
+ (function f(t){const k=Math.min(1,(t-t0)/dur);drawSD(k*k);if(k<1)sdAnimId=requestAnimationFrame(f);})(t0);}
+function updateStats(){const w=calc();
+ $('#tChip').textContent=P1-T;
+ countUp($('#vCS'),w.cs,'+');$('#vCS').className='v up';
+ countUp($('#vPS'),w.ps,'−');$('#vPS').className='v down';
+ countUp($('#vNET'),w.net1,'+');$('#vNET').className='v net';}
+$('#replaySD').onclick=playSD;
+
+/* ============ [BLOCK:FLOW-CANVAS] ① 金币流动画 v2.1（防字冲突引擎） ============ */
+const fCanvas=$('#flowCanvas');let fctx=fit(fCanvas);
+let mode='accept',flowT0=performance.now(),coins=[],poofs=[],lastSpawn={};
+const STAGE=[0,.8,1.7,2.5];
+
+function bez(p0,p1,p2,t){const u=1-t;return{x:u*u*p0.x+2*u*t*p1.x+t*t*p2.x,y:u*u*p0.y+2*u*t*p1.y+t*t*p2.y};}
+function L(W,H){return{taxpayer:{x:.13*W,y:.205*H},govt:{x:.265*W,y:.415*H},nlF:{x:.165*W,y:.755*H},
+consumer:{x:.775*W,y:.44*H},isF:{x:.88*W,y:.78*H}};}
+function flows(o,H){return[
+ {a:o.taxpayer,b:o.govt,c:{x:(o.taxpayer.x+o.govt.x)/2+30,y:o.taxpayer.y-30},col:'#7dd3fc',label:'① 纳税',ts:[.4,.55,.7,.28]},
+ {a:o.govt,b:o.nlF,c:{x:o.govt.x+90,y:(o.govt.y+o.nlF.y)/2},col:'#7dd3fc',label:'② 补贴/减税💰',ts:[.8,.65,.5,.35]},
+ {a:o.nlF,b:o.consumer,c:{x:(o.nlF.x+o.consumer.x)/2,y:.14*H},col:'#34d399',label:'③ 低价出口 👕',ts:[.15,.24,.32,.68,.76,.4]},
+ {a:o.consumer,b:o.nlF,c:{x:(o.nlF.x+o.consumer.x)/2,y:.94*H},col:'#fbbf24',label:'④ 付货款 💴',ts:[.85,.76,.68,.32,.24,.15]}];}
+
+/* ★ 防冲突落位：候选点 × 禁区碰撞检测，挑第一个不撞的位置 */
+function smartPlace(f,fdef,zones,font){
+ const dys=[0,-20,20],dxs=[0,-45,45];
+ for(const t of fdef.ts)for(const dy of dys)for(const dx of dxs){
+  const p=bez(f.a,f.c,f.b,t),bx=labelBox(f.label,p.x+dx,p.y+dy,font);
+  if(!zones.some(z=>hit(bx,z)))return{x:p.x+dx,y:p.y+dy};
+ }
+ const p=bez(f.a,f.c,f.b,fdef.ts[0]);return{x:p.x,y:p.y}; // 兜底（芯片底衬保证可读）
+}
+function chip(ctx,x,y,text,col,font){
+ ctx.save();ctx.font=font;const w=ctx.measureText(text).width;
+ ctx.fillStyle='rgba(11,16,32,.85)';roundRect(ctx,x-w/2-7,y-11,w+14,22,11);ctx.fill();
+ ctx.strokeStyle=col+'99';ctx.lineWidth=1;ctx.stroke();
+ ctx.fillStyle=col;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,x,y+1);
+ ctx.restore();}
+
+function drawCountry(ctx,x1,x2,y1,y2,title,col,fs){
+ roundRect(ctx,x1,y1,x2-x1,y2-y1,18);
+ ctx.fillStyle=col==='#38bdf8'?'rgba(56,189,248,.055)':'rgba(52,211,153,.055)';ctx.fill();
+ ctx.strokeStyle=col+'55';ctx.stroke();
+ ctx.font='bold '+fs+'px sans-serif';ctx.fillStyle=col;ctx.textAlign='center';
+ ctx.fillText(title,(x1+x2)/2,y1+fs+10);}
+function drawWall(ctx,W,H){
+ const x=.5*W;ctx.save();ctx.fillStyle='rgba(251,191,36,.9)';
+ for(let y=.2*H;y<.92*H;y+=22)ctx.fillRect(x-8,y,16,16);
+ const txt='🧱 报复性关税',font='bold 12px sans-serif',w=tw(txt,font)+16;
+ roundRect(ctx,x-w/2,.115*H,w,22,11);ctx.fillStyle='rgba(11,16,32,.92)';ctx.fill();
+ ctx.strokeStyle='rgba(251,191,36,.8)';ctx.lineWidth=1.2;ctx.stroke();
+ ctx.font=font;ctx.fillStyle='#fbbf24';ctx.textAlign='center';ctx.textBaseline='middle';
+ ctx.fillText(txt,x,.115*H+11);ctx.restore();}
+function drawActor(ctx,p,em,name,role){ctx.save();
+ ctx.beginPath();ctx.arc(p.x,p.y,24,0,7);ctx.fillStyle='rgba(255,255,255,.07)';ctx.fill();
+ ctx.strokeStyle='rgba(255,255,255,.18)';ctx.stroke();
+ ctx.font='24px serif';ctx.textAlign='center';ctx.fillText(em,p.x,p.y+8);
+ ctx.font='bold 12.5px sans-serif';ctx.fillStyle='#e8edf7';ctx.fillText(name,p.x,p.y+42);
+ ctx.font='11px sans-serif';ctx.fillStyle='#94a3b8';ctx.fillText(role,p.x,p.y+58);ctx.restore();}
+function coin(ctx,x,y,col){ctx.save();ctx.beginPath();ctx.arc(x,y,9,0,7);
+ const g=ctx.createRadialGradient(x-3,y-3,1,x,y,9);g.addColorStop(0,'#fff7d6');g.addColorStop(1,col);
+ ctx.fillStyle=g;ctx.fill();ctx.strokeStyle='rgba(0,0,0,.25)';ctx.stroke();
+ ctx.fillStyle='#7c2d12';ctx.font='bold 10px sans-serif';ctx.textAlign='center';ctx.fillText('¥',x,y+3.5);ctx.restore();}
+function wallHitT(f,W){for(let t=.02;t<1;t+=.01){if(bez(f.a,f.c,f.b,t).x>=W*.5)return t;}return .5;}
+
+function drawFlow(now){
+ const W=fCanvas.clientWidth,H=fCanvas.clientHeight,ctx=fctx;
+ ctx.clearRect(0,0,W,H);
+ const o=L(W,H),fs=flows(o,H),el=(now-flowT0)/1000;
+ const small=W<560,tfs=Math.max(11,Math.min(14,W*.034)),lfont='bold '+(small?12:13)+'px sans-serif';
+ drawCountry(ctx,.03*W,.37*W,.05*H,.95*H,small?'NL 🌾 补贴国':'Neighborland 🌾（补贴国）','#38bdf8',tfs);
+ drawCountry(ctx,.63*W,.97*W,.05*H,.95*H,small?'IS 🏝 进口国·我们':'Isoland 🏝️（进口国 = 我们）','#34d399',tfs);
+ if(mode==='tariff')drawWall(ctx,W,H);
+
+ /* ★ Step1 禁区登记表（每帧重建：先画的占坑，后画的绕道） */
+ const zones=[];
+ zones.push({x1:0,y1:0,x2:W,y2:.05*H+tfs*2.6});                            // 国名条
+ zones.push({x1:.5*W-14,y1:.13*H,x2:.5*W+14,y2:.92*H});                    // 砖墙体
+ if(mode==='tariff')zones.push({x1:.5*W-60,y1:.09*H,x2:.5*W+60,y2:.19*H}); // 墙铭牌
+ poofs.forEach(p=>zones.push({x1:p.x-24,y1:p.y-28,x2:p.x+24,y2:p.y+10}));  // 爆炸现场
+ [o.taxpayer,o.govt,o.nlF,o.consumer,o.isF].forEach(p=>{
+  zones.push({x1:p.x-32,y1:p.y-32,x2:p.x+32,y2:p.y+32});                   // 演员身体
+  zones.push({x1:p.x-52,y1:p.y+26,x2:p.x+52,y2:p.y+70});});                // 名牌两行
+
+ /* Step2 流向虚线 */
+ fs.forEach((f,i)=>{if(el<STAGE[i])return;
+  ctx.save();ctx.globalAlpha=.5;ctx.strokeStyle=f.col;ctx.lineWidth=2;ctx.setLineDash([7,6]);
+  ctx.beginPath();ctx.moveTo(f.a.x,f.a.y);ctx.quadraticCurveTo(f.c.x,f.c.y,f.b.x,f.b.y);ctx.stroke();ctx.restore();});
+
+ /* Step3 金币 + 爆炸 */
+ fs.forEach((f,i)=>{if(el<STAGE[i])return;
+  if(!lastSpawn[i]||el-lastSpawn[i]>.38){lastSpawn[i]=el;coins.push({i,born:el});}});
+ const wallT2=mode==='tariff'?wallHitT(fs[2],W):1e9;
+ coins=coins.filter(c=>{const k=(el-c.born)/1.25,f=fs[c.i];
+  if(mode==='tariff'&&c.i===2&&k>=wallT2){
+   const p=bez(f.a,f.c,f.b,wallT2);poofs.push({x:p.x,y:p.y-6,t0:performance.now()});return false;}
+  if(k>=1)return false;
+  const p=bez(f.a,f.c,f.b,k);coin(ctx,p.x,p.y,f.col);return true;});
+ poofs=poofs.filter(p=>{const k=(now-p.t0)/600;if(k>=1)return false;
+  ctx.save();ctx.globalAlpha=1-k;ctx.font=`${18+22*k}px serif`;ctx.textAlign='center';
+  ctx.fillText('💥',p.x,p.y);ctx.restore();return true;});
+
+ /* ★ Step4 标签防冲突落位（谁先落位谁占坑） */
+ fs.forEach((f,i)=>{if(el<STAGE[i])return;
+  const pos=smartPlace(f,fs[i],zones,lfont);
+  chip(ctx,pos.x,pos.y,f.label,f.col,lfont);
+  zones.push(labelBox(f.label,pos.x,pos.y,lfont));});
+
+ drawActor(ctx,o.taxpayer,'👨‍👩‍👧','纳税人','出钱的人');
+ drawActor(ctx,o.govt,'🏛️','NL 政府','发补贴');
+ drawActor(ctx,o.nlF,'🏭','NL 纺织厂','成本更低');
+ drawActor(ctx,o.consumer,mode==='accept'?'🛍️':'😫','IS 消费者',mode==='accept'?'捡便宜':'红包没了');
+ drawActor(ctx,o.isF,'🏭','IS 本国厂','受冲击 😭');
+ requestAnimationFrame(drawFlow);
+}
+function resetFlow(){coins=[];poofs=[];lastSpawn={};flowT0=performance.now();
+ $('#btnAccept').classList.toggle('on',mode==='accept');
+ $('#btnTariff').classList.toggle('on',mode==='tariff');
+ $('#flowCaption').innerHTML=mode==='accept'
+ ?'🟢 <b>接受补贴：</b>NL 纳税人出钱 → NL 政府补贴工厂 → 工厂低价卖给 IS 消费者。IS 消费者省的 > IS 工厂亏的，<b>出钱的却是 NL 纳税人</b>——等于外国给我们发红包。'
+ :'🧱 <b>报复性关税：</b>关税墙一立，价格涨回去。消费者的"红包"被没收（💥），NL 纳税人的钱照交，两边工厂都不痛快——<b>三输</b>。';}
+$('#btnAccept').onclick=()=>{mode='accept';resetFlow();};
+$('#btnTariff').onclick=()=>{mode='tariff';resetFlow();};
+$('#btnReplay').onclick=resetFlow;
+
+/* ============ [BLOCK:ECHARTS] ③ 福利对比柱状图 ============ */
+let wchart=null;
+function initChart(){if(!window.echarts){
+ $('#welfareChart').innerHTML='<p style="color:#94a3b8">ECharts 未能加载（需联网加载 CDN，或下载 echarts.min.js 本地引用）</p>';return;}
+ wchart=echarts.init($('#welfareChart'));updateChart();}
+function updateChart(){if(!wchart)return;const w=calc();
+ wchart.setOption({backgroundColor:'transparent',
+  tooltip:{trigger:'axis',axisPointer:{type:'shadow'},backgroundColor:'#0f172a',
+   borderColor:'rgba(255,255,255,.15)',textStyle:{color:'#e8edf7'}},
+  legend:{textStyle:{color:'#cbd5e1'},top:0,itemWidth:14,itemHeight:10},
+  grid:{left:56,right:24,top:44,bottom:34},
+  xAxis:{type:'category',data:['🙏 接受补贴','🧱 征收报复关税','🚫 禁止进口'],
+   axisLabel:{color:'#e2e8f0',fontSize:13,interval:0},axisLine:{lineStyle:{color:'#475569'}}},
+  yAxis:{type:'value',name:'福利变动（元/期，相对原价P₁）',nameTextStyle:{color:'#94a3b8',fontSize:11},
+   axisLabel:{color:'#94a3b8'},splitLine:{lineStyle:{color:'rgba(148,163,184,.12)'}}},
+  series:[
+   {name:'消费者剩余',type:'bar',stack:'w',barWidth:'44%',data:[w.cs,0,-550],color:'#34d399',
+    label:{show:true,position:'inside',formatter:p=>p.value?fmt(Math.abs(p.value)):'',color:'#06251a',fontWeight:700}},
+   {name:'生产者剩余',type:'bar',stack:'w',data:[-w.ps,0,450],color:'#f87171',
+    label:{show:true,position:'inside',formatter:p=>p.value?fmt(Math.abs(p.value)):'',color:'#2a0708',fontWeight:700}},
+   {name:'政府关税收入',type:'bar',stack:'w',data:[0,w.gov,0],color:'#60a5fa',
+    label:{show:true,position:'inside',formatter:p=>p.value?fmt(Math.abs(p.value)):'',color:'#0a1e3c',fontWeight:700}},
+   {name:'无谓损失',type:'bar',stack:'w',data:[0,-w.dwl,0],color:'#f59e0b',
+    label:{show:true,position:'inside',formatter:p=>p.value?fmt(Math.abs(p.value)):'',color:'#2d1a03',fontWeight:700}}]});
+ const s2=w.net2>0?'+'+fmt(w.net2):(w.net2===0?'±0':fmt(w.net2));
+ $('#tot1').innerHTML=`<b style="color:#34d399">+${fmt(w.net1)}</b><span>接受补贴：消费者赚的 > 生产者亏的</span>`;
+ $('#tot2').innerHTML=`<b style="color:${w.net2>0?'#60a5fa':(w.net2===0?'#94a3b8':'#f87171')}">${s2}</b><span>报复关税：关税收入 − 无谓损失</span>`;
+ $('#tot3').innerHTML=`<b style="color:#f87171">−100</b><span>禁止进口：最差选择</span>`;}
+
+/* ============ [BLOCK:INTERACT] Tab筛选 / 滑杆 / 测验 / 复制 ============ */
+$$('.tab').forEach(t=>t.addEventListener('click',()=>{
+ $$('.tab').forEach(o=>o.classList.remove('on'));t.classList.add('on');
+ const f=t.dataset.s;
+ $$('#scenGrid .scen').forEach(c=>{c.style.display=(f==='all'||c.dataset.s===f)?'':'none';});}));
+
+$$('.tSlider').forEach(s=>s.addEventListener('input',e=>{
+ T=+e.target.value;$$('.tSlider').forEach(o=>o.value=T);
+ drawSD();updateStats();updateChart();}));
+
+const quiz=[
+ {q:'Neighborland 补贴之后，这份"便宜"真正的买单人是谁？',
+  opts:['Isoland 的纺织厂','Neighborland 的纳税人','Isoland 的政府'],a:1,
+  exp:'补贴来自 NL 政府的减税，钱出自其本国纳税人。相当于外国纳税人在给 Isoland 消费者发红包。'},
+ {q:'补贴让价格下降后，Isoland 的总福利（消费者+生产者）怎么变？',
+  opts:['下降，因为工厂受伤','不变，有输有赢抵消了','上升，消费者赚的 > 生产者亏的'],a:2,
+  exp:'低价带来的消费者剩余是一个大梯形，生产者只损失其中一块，剩余部分是净赚（图中绿色比红色大）。'},
+ {q:'按照曼昆的分析，Isoland 最应该做的是？',
+  opts:['征收报复性关税','感谢 Neighborland 的补贴','完全禁止进口'],a:1,
+  exp:'报复会把便宜货挡回去，消费者损失更大，还可能引发贸易战。真要抗议也轮不到 Isoland——该去抗议的是 Neighborland 的纳税人。'}];
+function renderQuiz(){const box=$('#quizBox');
+ quiz.forEach((q,qi)=>{const d=document.createElement('div');d.className='card qz';
+  d.innerHTML=`<h3>${qi+1}. ${q.q}</h3>`+
+   q.opts.map((o,oi)=>`<button class="opt" data-q="${qi}" data-o="${oi}">${String.fromCharCode(65+oi)}. ${o}</button>`).join('')+
+   `<div class="exp" id="exp${qi}">💡 ${q.exp}</div>`;
+  box.appendChild(d);});
+ box.addEventListener('click',e=>{const b=e.target.closest('.opt');if(!b)return;
+  const qi=+b.dataset.q,oi=+b.dataset.o;
+  if(box.dataset['a'+qi])return;box.dataset['a'+qi]=1;
+  const opts=box.querySelectorAll(`.opt[data-q="${qi}"]`);
+  if(oi===quiz[qi].a)b.classList.add('ok');
+  else{b.classList.add('no');opts[quiz[qi].a].classList.add('ok');}
+  $('#exp'+qi).style.display='block';});}
+
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');
+ setTimeout(()=>t.classList.remove('show'),1800);}
+$('#copyBtn').onclick=async()=>{const txt=$('#scriptTxt').textContent.trim();
+ try{await navigator.clipboard.writeText(txt);toast('讲解词已复制 ✓');}
+ catch(e){const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);
+  ta.select();document.execCommand('copy');ta.remove();toast('讲解词已复制 ✓');}};
+
+/* ============ [BLOCK:STARTUP] 启动 ============ */
+renderQuiz();resetFlow();requestAnimationFrame(drawFlow);
+playSD();updateStats();initChart();
+window.addEventListener('resize',()=>{sctx=fit(sdCanvas);fctx=fit(fCanvas);drawSD();if(wchart)wchart.resize();});
+</script>
+</body>
+</html>
