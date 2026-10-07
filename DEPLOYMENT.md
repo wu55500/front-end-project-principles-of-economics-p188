@@ -34,6 +34,7 @@ http://139.155.132.81
 | 数据层 | 默认容器内 PGLite；设置 `DATABASE_URL` 即切换为云 Postgres | 环境配置、可移植性 |
 | 日志 | Docker json-file 限制单文件 10MB×3，防止打满磁盘 | 日志治理 |
 | 资源保障 | 2G swap，避免构建期内存不足 OOM | 容量规划 |
+| 外链治理 | `VITE_GROK_EXTENSIONS=0`（runner 阶段）关闭第三方平台注入脚本 | 生产零外链依赖、供应链收敛 |
 
 ## 复现步骤
 
