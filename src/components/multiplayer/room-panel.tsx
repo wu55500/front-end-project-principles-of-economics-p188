@@ -11,13 +11,17 @@ import { Button } from "@/components/ui/button";
 import { P2PRoom, type PeerInfo } from "@/lib/multiplayer";
 import { useViz } from "@/store/viz";
 
-function makePeerId(): string {
-  // Stable for this tab session: random id persisted in sessionStorage.
-  const KEY = "p188.peerId";
-  let id = sessionStorage.getItem(KEY);
+function PEER_KEY(): string {
+  return "p188.peerId";
+}
+
+// Only runs in the browser after mount; sessionStorage does not exist during SSR.
+function readPeerId(): string {
+  if (typeof window === "undefined") return "";
+  let id = window.sessionStorage.getItem(PEER_KEY());
   if (!id) {
     id = `p_${Math.random().toString(36).slice(2, 10)}`;
-    sessionStorage.setItem(KEY, id);
+    window.sessionStorage.setItem(PEER_KEY(), id);
   }
   return id;
 }
@@ -27,7 +31,10 @@ type SyncMsg =
   | { t: "ping" };
 
 export function RoomPanel() {
-  const peerId = useMemo(makePeerId, []);
+  const [peerId, setPeerId] = useState("");
+  useEffect(() => {
+    setPeerId(readPeerId());
+  }, []);
   const [room, setRoom] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [active, setActive] = useState(false);
