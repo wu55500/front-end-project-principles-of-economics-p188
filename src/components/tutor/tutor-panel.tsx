@@ -5,7 +5,7 @@
  */
 import { useState, useRef, useEffect } from "react";
 import { GraduationCap, Send, Sparkles } from "lucide-react";
-import { askTutor, type TutorMsg } from "@/lib/tutor/tutor.server";
+import { askTutor, type TutorMsg } from "@/lib/tutor/tutor";
 import { useViz } from "@/store/viz";
 
 const SUGGEST = ["为什么报复关税不划算？", "禁止进口谁赚谁亏？", "什么是消费者剩余？", "为什么要说谢谢？"];

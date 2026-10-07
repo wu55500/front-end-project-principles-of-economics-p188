@@ -9,7 +9,7 @@ import {
   getIndicator,
   listIndicatorCatalog,
   type IndicatorSeries,
-} from "@/lib/data/econ-data.server";
+} from "@/lib/data/econ-data";
 
 const COUNTRIES: { code: string; name: string }[] = [
   { code: "WLD", name: "世界" },
