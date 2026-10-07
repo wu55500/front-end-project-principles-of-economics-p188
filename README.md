@@ -7,7 +7,9 @@ https://www.coze.cn/s/Ym4mDDKAYeA/)：用的vercel，我改为用Linux＋nginx�
 
 ## 在线体验
 
-部署后可用（见下方"部署"）。本地运行：
+**▶ 在线地址：http://139.155.132.81**（Docker + Nginx 云服务器部署，详见 [DEPLOYMENT.md](./DEPLOYMENT.md)）
+
+本地运行：
 
 \`\`\`bash
 npm install
