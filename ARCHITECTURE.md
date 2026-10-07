@@ -11,8 +11,8 @@ src/
 │  └─ api/rtc.ts      WebRTC 信令 HTTP 适配（GET/POST）
 ├─ components/
 │  ├─ charts/         三套供需图独立实现 + 对比容器
-│  ├─ scene3d/        Three.js 3D 贸易航道（懒加载）
-│  ├─ worldmap/       d3-geo 世界贸易流（懒加载）
+│  ├─ scene3d/        React Three Fiber 3D 全球贸易沙盘（懒加载）
+│  ├─ worldmap/       d3-geo + 自托管 GeoJSON 世界贸易流（懒加载）
 │  ├─ realdata/       世界银行真实数据面板
 │  ├─ causal/         DID + Granger 因果面板
 │  ├─ tutor/          LLM 辅导聊天
@@ -116,8 +116,9 @@ src/
 | 能力 | 技术 |
 | --- | --- |
 | 前端 / 全栈 | React 19、TypeScript、Vite、Tailwind、Radix |
+| 3D / 图形 | React Three Fiber、@react-three/drei、three、postprocessing 辉光 |
 | 实时通信 | WebRTC P2P + 数据库信令（无 WebSocket） |
-| 数据可视化 | Recharts、D3、Canvas、d3-geo、Three.js |
+| 数据可视化 | Recharts、D3、Canvas 2D、d3-geo（本地 GeoJSON）|
 | 工程规范 | i18n、SEO/OG、环境变量分环境、架构文档 |
 
 > 说明：本项目用于展示通用后端工程与 Agent 应用能力；语言层面的 Java/Spring Boot 能力可由独立 Java 项目补充，两者不冲突。

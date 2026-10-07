@@ -9,7 +9,7 @@ import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Box } from "lucide-react";
 import { useViz } from "@/store/viz";
 
-const TradeCanvas = lazy(() => import("./trade-canvas").then((m) => ({ default: m.TradeCanvas })));
+const TradeCanvas = lazy(() => import("./trade-canvas"));
 
 export function TradeScene() {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -41,9 +41,9 @@ export function TradeScene() {
         <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 p-8 text-center">
           <Box className="size-8 text-muted" />
           <div>
-            <p className="font-display text-lg">3D 贸易航道</p>
+            <p className="font-display text-lg">3D 全球贸易沙盘</p>
             <p className="mx-auto mt-1 max-w-md text-sm text-muted">
-              立体看两国之间的货流：补贴越高，航道越忙。Three.js 体积较大，点击后才加载，不拖慢首屏。
+              立体看清完整闭环：邻国工厂的纺织品货箱出口到岛国消费者，货款以金币回流；切到关税模式可见海关壁垒与关税收入。React Three Fiber 体积较大，点击后才加载，不拖慢首屏。
             </p>
           </div>
           <button
@@ -51,7 +51,7 @@ export function TradeScene() {
             onClick={() => setEnabled(true)}
             className="h-11 rounded-[10px] bg-accent px-4 text-sm font-medium text-accent-fg hover:opacity-90"
           >
-            加载 3D 场景
+            加载 3D 沙盘
           </button>
         </div>
       ) : (

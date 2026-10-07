@@ -193,43 +193,40 @@ export function FlowSim() {
       setStep((prev) => (prev === si ? prev : si));
 
       ctx.clearRect(0, 0, w, h);
-      const placed: { x: number; y: number; w: number; h: number }[] = [];
 
-      const chip = (text: string, cx: number, cy: number, col: string) => {
+      // Fixed, precomputed label anchors per actor (logical units). Never
+      // re-laid-out per frame, so labels cannot flicker or jump.
+      const LBL: Record<string, [number, number]> = {
+        taxpayer: [0, -46],
+        nlGov: [-72, 0],
+        nlFac: [-72, 0],
+        isGov: [0, -46],
+        isCon: [72, 0],
+        isFac: [72, 0],
+      };
+      const chip = (
+        text: string,
+        cx: number,
+        cy: number,
+        off: [number, number],
+        col: string,
+      ) => {
         ctx.font = "600 12px Source Sans 3, sans-serif";
-        const tw = ctx.measureText(text).width + 16;
+        const tw = Math.round(ctx.measureText(text).width + 16);
         const th = 22;
-        const cands = [
-          [0, 34],
-          [0, -38],
-          [-46, 34],
-          [46, 34],
-          [0, 52],
-          [-70, 0],
-          [70, 0],
-        ];
-        for (const [dx, dy] of cands) {
-          const x = cx + dx - tw / 2;
-          const y = cy + dy - th / 2;
-          const box = { x, y, w: tw, h: th };
-          const hit = placed.some(
-            (b) => !(box.x > b.x + b.w || box.x + box.w < b.x || box.y > b.y + b.h || box.y + box.h < b.y),
-          );
-          if (!hit) {
-            placed.push(box);
-            ctx.fillStyle = "rgba(11,12,16,.86)";
-            ctx.strokeStyle = col;
-            ctx.lineWidth = 1;
-            roundRect(ctx, x, y, tw, th, 8);
-            ctx.fill();
-            ctx.stroke();
-            ctx.fillStyle = "#eceae4";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(text, x + tw / 2, y + th / 2 + 0.4);
-            return;
-          }
-        }
+        // Round to whole device pixels and keep the anchor constant.
+        const x = Math.round(sx(cx) + (off[0] / LW) * w - tw / 2);
+        const y = Math.round(sy(cy) + (off[1] / LH) * h - th / 2);
+        ctx.fillStyle = "rgba(11,12,16,.88)";
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 1;
+        roundRect(ctx, x, y, tw, th, 8);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#eceae4";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(text, x + tw / 2, y + th / 2 + 0.4);
       };
 
       roundRect(ctx, sx(24), sy(60), sx(440) - sx(24), sy(492) - sy(60), 18);
@@ -275,7 +272,7 @@ export function FlowSim() {
           ctx.fillRect(wx - 10, yy, 20, 12);
         }
         ctx.restore();
-        if (wallK > 0.9) chip("报复关税 t", wx, sy(300), "rgba(209,122,122,.7)");
+        if (wallK > 0.9) chip("报复关税", WALL_X, 300, [0, 0], "rgba(209,122,122,.85)");
       } else {
         wallK = 0;
       }
@@ -352,7 +349,7 @@ export function FlowSim() {
         ctx.lineWidth = 1.4;
         ctx.stroke();
         icon(ctx, a.kind, k, ky, a.c);
-        chip(a.name, k, ky, a.c + "88");
+        chip(a.name, a.x, a.y, LBL[key], a.c + "99");
       });
 
       raf = requestAnimationFrame(tick);
