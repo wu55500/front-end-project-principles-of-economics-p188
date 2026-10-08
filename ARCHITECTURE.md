@@ -118,7 +118,7 @@ src/
 | 前端 / 全栈 | React 19、TypeScript、Vite、Tailwind、Radix |
 | 3D / 图形 | React Three Fiber、@react-three/drei、three、postprocessing 辉光 |
 | 实时通信 | WebRTC P2P + 数据库信令（无 WebSocket） |
-| 数据可视化 | Recharts、D3、Canvas 2D、d3-geo、R3F 三维地球 |
+| 数据可视化 | Recharts、D3、Canvas 2D、R3F 三维地球（合并几何体/实时遥测） |
 | 工程规范 | i18n、SEO/OG、环境变量分环境、架构文档 |
 
 > 说明：本项目用于展示通用后端工程与 Agent 应用能力；语言层面的 Java/Spring Boot 能力可由独立 Java 项目补充，两者不冲突。

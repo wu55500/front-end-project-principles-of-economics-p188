@@ -1,27 +1,23 @@
 /**
- * GlobeCanvas — interactive 3D globe (React Three Fiber).
+ * GlobeCanvas — high-end interactive 3D globe (React Three Fiber).
  *
- * Tells the modern "unfair competition / tariff" story in three dimensions:
- *   • textiles are shipped China → Mexico (trans-shipment / relabeling) → USA;
- *   • a free-trade vs trade-war toggle raises red tariff zones on the US and
- *     Mexican borders, blocks cargo and animates tariff costs;
- *   • the global subsidy slider t scales how many containers are moving.
+ * Story: textile export subsidy / tariff warfare in three dimensions.
+ *   上海(中国) ──出口──▶ 曼萨尼约(墨西哥) ──中转换单──▶ 洛杉矶(美国)
+ * In trade-war mode a blocked direct China→USA lane shows the tariff wall,
+ * while the Mexico trans-shipment route is how firms reroute.
  *
- * Countries are triangulated directly onto the sphere (no external runtime
- * fetch — world-atlas is imported as JSON), with an atmosphere glow and stars.
+ * Click any route to open a live telemetry panel (throughput / value /
+ * tariff rate) whose numbers update in real time. Rendering is built for
+ * scale: all country borders share one LineSegments (single draw call),
+ * land is one merged geometry, clouds are a procedural shader. Mobile
+ * devices get a reduced pipeline so the WebGL context is never lost.
  */
-import { Canvas, useFrame } from "@react-three/fiber";
-import {
-  Html,
-  OrbitControls,
-  Stars,
-  Line,
-  Billboard,
-  Text,
-} from "@react-three/drei";
+import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
+import { Html, OrbitControls, Stars, Billboard, Line } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import {
   Suspense,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -33,8 +29,20 @@ import type { FeatureCollection, Geometry, Position } from "geojson";
 import atlas from "@/assets/geo/countries-110m.json";
 import { useViz } from "@/store/viz";
 
-/* Coarse mobile / low-power detection used to shed GPU cost (lower pixel
- * ratio, skip post-processing) so the WebGL context is not lost on phones. */
+const R = 2;
+const WORLD = atlas as unknown as { objects: { countries: never } };
+
+const COLORS = {
+  land: "#23303c",
+  border: "#3d5666",
+  hiCN: "#39c6e8",
+  hiMX: "#f4c542",
+  hiUS: "#4cc38a",
+  cargo: "#39c6e8",
+  transit: "#f4c542",
+  blocked: "#e0606a",
+};
+
 function useIsMobile() {
   return useMemo(() => {
     if (typeof navigator === "undefined") return false;
@@ -46,20 +54,7 @@ function useIsMobile() {
   }, []);
 }
 
-const R = 2;
-const WORLD = atlas as unknown as {
-  objects: { countries: never };
-};
-const COLORS = {
-  land: "#26333f",
-  landHi: "#33505f",
-  border: "#3f5868",
-  cargo: "#39c6e8",
-  money: "#f4c542",
-  tariff: "#e0606a",
-};
-
-/* lat/lon (deg) -> point on sphere of radius r */
+/* lat/lon(deg) -> sphere point */
 function ll(lon: number, lat: number, r = R): THREE.Vector3 {
   const phi = (90 - lat) * (Math.PI / 180);
   const theta = (lon + 180) * (Math.PI / 180);
@@ -70,174 +65,197 @@ function ll(lon: number, lat: number, r = R): THREE.Vector3 {
   );
 }
 
-/* ------------------------------------------------------------------ *
- * Countries: triangulate polygons onto the sphere (fan per ring).
- * ------------------------------------------------------------------ */
-function Countries({ highlight }: { highlight: Set<number> }) {
-  const { landGeo, hiGeo, borderPts } = useMemo(() => {
-    const fc = feature(
-      WORLD as never,
-      WORLD.objects.countries,
-    ) as unknown as FeatureCollection<Geometry, { name?: string }>;
-    const landPos: number[] = [];
-    const hiPos: number[] = [];
-    const borderPts: THREE.Vector3[][] = [];
+/* ================================================================== *
+ * Countries — merged land geometry + a single merged border LineSegs
+ * ================================================================== */
+function Countries() {
+  const { landGeo, hiGeo, borderSegs } = useMemo(() => {
+    const fc = feature(WORLD as never, WORLD.objects.countries) as unknown as FeatureCollection<
+      Geometry,
+      Record<string, unknown>
+    >;
+    const land: number[] = [];
+    const hi: number[] = [];
+    const segs: number[] = [];
+    const hiIds = new Set([156, 484, 842]);
 
-    const consumeRing = (ring: Position[], target: number[]) => {
-      if (ring.length < 3) return;
-      // centroid direction
+    const ring = (coords: Position[], target: number[]) => {
+      if (coords.length < 3) return;
+      const verts = coords.map(([lo, la]) => ll(lo, la, R * 1.002));
       const c = new THREE.Vector3();
-      const verts = ring.map(([lon, lat]) => ll(lon, lat, R * 1.002));
       verts.forEach((v) => c.add(v));
-      c.normalize();
-      // projected center slightly above sphere so the fan sits on the surface
-      const center = c.clone().multiplyScalar(R * 1.003);
+      c.normalize().multiplyScalar(R * 1.004);
       for (let i = 0; i < verts.length - 1; i++) {
-        for (const v of [center, verts[i], verts[i + 1]]) {
-          target.push(v.x, v.y, v.z);
-        }
-      }
-      // border line (subdivide via interpolation handled by Line; densify)
-      const dense: THREE.Vector3[] = [];
-      for (let i = 0; i < ring.length - 1; i++) {
-        const a = ring[i];
-        const b = ring[i + 1];
-        const seg = Math.max(1, Math.ceil(Math.abs(b[0] - a[0]) / 3));
-        for (let s = 0; s < seg; s++) {
-          dense.push(
-            ll(
-              a[0] + ((b[0] - a[0]) * s) / seg,
-              a[1] + ((b[1] - a[1]) * s) / seg,
-              R * 1.004,
-            ),
+        for (const v of [c, verts[i], verts[i + 1]]) target.push(v.x, v.y, v.z);
+        // borders as un-indexed line segments (one merged LineSegments)
+        const dens = Math.max(1, Math.ceil(Math.abs(coords[i + 1][0] - coords[i][0]) / 3));
+        for (let s = 0; s < dens; s++) {
+          const a = ll(
+            coords[i][0] + ((coords[i + 1][0] - coords[i][0]) * s) / dens,
+            coords[i][1] + ((coords[i + 1][1] - coords[i][1]) * s) / dens,
+            R * 1.006,
           );
+          const b = ll(
+            coords[i][0] + ((coords[i + 1][0] - coords[i][0]) * (s + 1)) / dens,
+            coords[i][1] + ((coords[i + 1][1] - coords[i][1]) * (s + 1)) / dens,
+            R * 1.006,
+          );
+          segs.push(a.x, a.y, a.z, b.x, b.y, b.z);
         }
       }
-      borderPts.push(dense);
     };
 
-    fc.features.forEach((f, idx) => {
-      const target = highlight.has(idx) ? hiPos : landPos;
+    fc.features.forEach((f) => {
+      const id = Number((f as unknown as { id?: number }).id);
+      const target = hiIds.has(id) ? hi : land;
       const g = f.geometry;
       if (!g) return;
-      if (g.type === "Polygon") g.coordinates.forEach((ring) => consumeRing(ring, target));
+      if (g.type === "Polygon") g.coordinates.forEach((r) => ring(r, target));
       else if (g.type === "MultiPolygon")
-        g.coordinates.forEach((poly) => poly.forEach((ring) => consumeRing(ring, target)));
+        g.coordinates.forEach((p) => p.forEach((r) => ring(r, target)));
     });
 
     const landGeo = new THREE.BufferGeometry();
-    landGeo.setAttribute("position", new THREE.Float32BufferAttribute(landPos, 3));
+    landGeo.setAttribute("position", new THREE.Float32BufferAttribute(land, 3));
     landGeo.computeVertexNormals();
     const hiGeo = new THREE.BufferGeometry();
-    hiGeo.setAttribute("position", new THREE.Float32BufferAttribute(hiPos, 3));
+    hiGeo.setAttribute("position", new THREE.Float32BufferAttribute(hi, 3));
     hiGeo.computeVertexNormals();
-    return { landGeo, hiGeo, borderPts };
-  }, [highlight]);
+    return { landGeo, hiGeo, borderSegs: new Float32Array(segs) };
+  }, []);
 
   return (
     <group>
       <mesh geometry={landGeo}>
-        <meshStandardMaterial
-          color={COLORS.land}
-          roughness={0.85}
-          metalness={0.1}
-          side={THREE.DoubleSide}
-          flatShading
-        />
+        <meshStandardMaterial color={COLORS.land} roughness={0.9} metalness={0.08} flatShading />
       </mesh>
-      <mesh geometry={hiGeo as THREE.BufferGeometry}>
+      <mesh geometry={hiGeo}>
         <meshStandardMaterial
-          color={COLORS.landHi}
-          emissive={COLORS.tariff}
-          emissiveIntensity={0.25}
+          color="#2c4350"
+          emissive={COLORS.hiCN}
+          emissiveIntensity={0.4}
           roughness={0.6}
-          side={THREE.DoubleSide}
           flatShading
         />
       </mesh>
-      {borderPts.map((pts, i) => (
-        <Line
-          key={i}
-          points={pts}
-          color={COLORS.border}
-          lineWidth={0.6}
-          transparent
-          opacity={0.7}
-        />
-      ))}
+      <lineSegments frustumCulled={false}>
+        <bufferGeometry>
+          <bufferAttribute attach="attributes-position" args={[borderSegs, 3]} />
+        </bufferGeometry>
+        <lineBasicMaterial color={COLORS.border} transparent opacity={0.55} />
+      </lineSegments>
     </group>
   );
 }
 
-/* ------------------------------------------------------------------ *
- * Great-circle arc on an inflated sphere
- * ------------------------------------------------------------------ */
-function arc(a: THREE.Vector3, b: THREE.Vector3, lift = 0.12): THREE.Vector3[] {
-  const pts: THREE.Vector3[] = [];
-  const ang = a.angleTo(b);
-  const r2 = R + lift;
-  for (let i = 0; i <= 64; i++) {
-    const t = i / 64;
-    const p = a
-      .clone()
-      .normalize()
-      .multiplyScalar(R)
-      .lerp(b.clone().normalize().multiplyScalar(R), t)
-      .normalize()
-      .multiplyScalar(R + lift * Math.sin(Math.PI * t) + 0.01);
-    void r2;
-    void ang;
-    pts.push(p);
-  }
-  return pts;
+/* ================================================================== *
+ * Procedural cloud shell (simplex-ish noise shader)
+ * ================================================================== */
+function Clouds({ on }: { on: boolean }) {
+  const mat = useMemo(
+    () =>
+      new THREE.ShaderMaterial({
+        transparent: true,
+        depthWrite: false,
+        uniforms: { u: { value: 0 } },
+        vertexShader: `varying vec3 v; void main(){ v=normalize(position);
+          gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+        fragmentShader: `
+          varying vec3 v; uniform float u;
+          float h(vec3 p){ return fract(sin(dot(p,vec3(127.1,311.7,74.7)))*43758.5); }
+          float n(vec3 p){
+            vec3 i=floor(p),f=fract(p); f=f*f*(3.-2.*f);
+            float a=h(i),b=h(i+vec3(1,0,0)),c=h(i+vec3(0,1,0)),d=h(i+vec3(1,1,0));
+            float e=h(i+vec3(0,0,1)),g=h(i+vec3(1,0,1)),k=h(i+vec3(0,1,1)),l=h(i+vec3(1,1,1));
+            return mix(mix(mix(a,b,f.x),mix(c,d,f.x),f.y),mix(mix(e,g,f.x),mix(k,l,f.x),f.y),f.z);
+          }
+          void main(){
+            vec3 p=v*3.2; float q=n(p)+0.6*n(p*2.1)+0.35*n(p*4.2);
+            float cl=smoothstep(1.15,1.85,q);
+            gl_FragColor=vec4(vec3(0.92,0.95,1.0),cl*0.5);
+          }`,
+      }),
+    [],
+  );
+  useFrame(({ clock }) => {
+    mat.uniforms.u.value = clock.elapsedTime;
+  });
+  if (!on) return null;
+  return (
+    <mesh material={mat} scale={1.012}>
+      <sphereGeometry args={[R, 48, 32]} />
+    </mesh>
+  );
 }
 
-/* moving particles along a route (list of vectors) */
-function CargoFlow({
-  route,
-  count,
-  color,
-  speed,
-  blocked,
-  emissive,
-}: {
-  route: THREE.Vector3[];
-  count: number;
+/* ================================================================== *
+ * Route: glowing line + moving cargo + invisible clickable tube
+ * ================================================================== */
+type RouteDef = {
+  id: string;
+  label: string;
+  from: [number, number];
+  via?: [number, number];
+  to: [number, number];
   color: string;
+  lift: number;
+  cargoColor: string;
+};
+
+function arcPts(a: THREE.Vector3, b: THREE.Vector3, lift: number) {
+  const out: THREE.Vector3[] = [];
+  for (let i = 0; i <= 72; i++) {
+    const t = i / 72;
+    const p = a
+      .clone()
+      .lerp(b.clone(), t)
+      .normalize()
+      .multiplyScalar(R + lift * Math.sin(Math.PI * t) + 0.015);
+    out.push(p);
+  }
+  return out;
+}
+
+function Cargo({
+  pts,
+  color,
+  count,
+  speed,
+  dim,
+}: {
+  pts: THREE.Vector3[];
+  color: string;
+  count: number;
   speed: number;
-  blocked?: boolean;
-  emissive?: number;
+  dim?: boolean;
 }) {
-  const group = useRef<THREE.Group>(null);
-  const curve = useMemo(() => new THREE.CatmullRomCurve3(route, false, "catmullrom", 0.2), [route]);
+  const ref = useRef<THREE.Group>(null);
+  const curve = useMemo(() => new THREE.CatmullRomCurve3(pts), [pts]);
   const seeds = useMemo(
     () => Array.from({ length: count }, (_, i) => ({ u: i / count })),
     [count],
   );
   useFrame((_, dt) => {
-    const g = group.current;
+    const g = ref.current;
     if (!g) return;
     const d = Math.min(dt, 0.05);
     g.children.forEach((m, i) => {
       const s = seeds[i];
-      if (!blocked) s.u = (s.u + speed * d) % 1;
-      else s.u = Math.min(s.u, 0.62); // stop at the tariff zone
-      const p = curve.getPoint(s.u);
-      m.position.copy(p);
-      m.lookAt(0, 0, 0);
+      s.u = (s.u + speed * d) % 1;
+      m.position.copy(curve.getPoint(s.u));
     });
   });
   return (
-    <group ref={group}>
+    <group ref={ref}>
       {seeds.map((_, i) => (
         <mesh key={i}>
-          <boxGeometry args={[0.07, 0.045, 0.05]} />
+          <boxGeometry args={[0.075, 0.05, 0.05]} />
           <meshStandardMaterial
             color={color}
             emissive={color}
-            emissiveIntensity={emissive ?? 0.8}
-            metalness={0.3}
-            roughness={0.4}
+            emissiveIntensity={dim ? 0.4 : 1.1}
+            transparent={dim}
+            opacity={dim ? 0.3 : 1}
           />
         </mesh>
       ))}
@@ -245,79 +263,167 @@ function CargoFlow({
   );
 }
 
-/* ------------------------------------------------------------------ *
- * City marker + label
- * ------------------------------------------------------------------ */
-function City({
-  lon,
-  lat,
-  lab,
-  name,
-  sub,
-  color,
+function Route({
+  def,
+  pts,
+  selected,
+  onSelect,
+  war,
 }: {
-  lon: number;
-  lat: number;
-  lab?: [number, number];
-  name: string;
-  sub: string;
-  color: string;
+  def: RouteDef;
+  pts: THREE.Vector3[];
+  selected: boolean;
+  onSelect: (id: string) => void;
+  war: boolean;
 }) {
-  const pos = useMemo(() => ll(lon, lat, R * 1.01), [lon, lat]);
-  // Label anchor (default right above the marker), can be offset to avoid
-  // colliding with a neighbouring city's label.
-  const labelPos = useMemo(() => {
-    if (!lab) return new THREE.Vector3(0, 0.18, 0);
-    const world = ll(lab[0], lab[1], R * 1.01);
-    return world.sub(pos);
-  }, [lab, pos]);
+  const curve = useMemo(() => new THREE.CatmullRomCurve3(pts), [pts]);
+  const tube = useMemo(() => new THREE.TubeGeometry(curve, 90, 0.09, 8, false), [curve]);
+  const isBlocked = def.id === "direct";
+  const active = !isBlocked || war;
+  const [hover, setHover] = useState(false);
+  const beacon = useRef<THREE.Mesh>(null);
+  const mid = useMemo(() => curve.getPoint(0.5), [curve]);
+  useFrame(({ clock }) => {
+    if (beacon.current) {
+      const p = 1 + Math.sin(clock.elapsedTime * 4) * 0.22;
+      beacon.current.scale.setScalar(p);
+    }
+  });
+  const click = (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    onSelect(def.id);
+  };
+  if (!active) return null;
   return (
-    <group position={pos}>
-      <Billboard>
-        <mesh position={[0, 0.06, 0]}>
-          <sphereGeometry args={[0.035, 12, 12]} />
-          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2.4} />
-        </mesh>
-      </Billboard>
-      <Html position={labelPos} center distanceFactor={6} zIndexRange={[10, 0]}>
-        <div
-          style={{
-            textAlign: "center",
-            fontFamily: "Source Sans 3, sans-serif",
-            pointerEvents: "none",
-            whiteSpace: "nowrap",
-          }}
+    <group>
+      <Line
+        points={pts}
+        color={def.color}
+        lineWidth={selected ? 4.5 : isBlocked ? 1.4 : 2.6}
+        dashed={isBlocked}
+        dashSize={0.12}
+        gapSize={0.08}
+        transparent
+        opacity={isBlocked ? 0.55 : selected ? 1 : 0.85}
+      />
+      {!isBlocked && (
+        <Cargo
+          pts={pts}
+          color={def.cargoColor}
+          count={Math.round(selected ? 16 : 10)}
+          speed={0.055 * (selected ? 1.5 : 1)}
+        />
+      )}
+      {/* pulsing midpoint beacon = obvious click target */}
+      {!isBlocked && (
+        <mesh
+          ref={beacon}
+          position={mid}
+          onClick={click}
+          onPointerOver={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor="pointer"; }}
+          onPointerOut={() => { setHover(false); document.body.style.cursor="auto"; }}
         >
-          <div style={{ fontSize: 13, fontWeight: 700, color: "#f2f0e9", textShadow: "0 1px 5px #000" }}>
-            {name}
-          </div>
-          <div style={{ fontSize: 10, color: "#9fb0bd" }}>{sub}</div>
-        </div>
-      </Html>
+          <sphereGeometry args={[0.085, 16, 16]} />
+          <meshStandardMaterial
+            color={def.color}
+            emissive={def.color}
+            emissiveIntensity={selected || hover ? 2.4 : 1.5}
+            transparent
+            opacity={0.92}
+          />
+        </mesh>
+      )}
+      {/* fat invisible tube = easy touch target along the whole lane */}
+      <mesh geometry={tube} onClick={click}>
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
     </group>
   );
 }
 
-/* pulsing red tariff dome on the US border region */
-function TariffZone({ lon, lat, on }: { lon: number; lat: number; on: boolean }) {
+/* ================================================================== *
+ * City markers
+ * ================================================================== */
+type CityDef = {
+  id: string;
+  lon: number;
+  lat: number;
+  px: [number, number];
+  name: string;
+  sub: string;
+};
+
+const CITIES: CityDef[] = [
+  { id: "cn", lon: 121.5, lat: 31.2, px: [40, -34], name: "上海", sub: "中国 · 起运" },
+  { id: "mx", lon: -104.3, lat: 19.05, px: [-40, 46], name: "曼萨尼约", sub: "墨西哥 · 中转换单" },
+  { id: "us", lon: -118.24, lat: 34.05, px: [-22, -34], name: "洛杉矶", sub: "美国 · 目的地" },
+];
+
+/* marker sphere sitting on the globe */
+function CityMarker({ lon, lat }: { lon: number; lat: number }) {
+  const pos = useMemo(() => ll(lon, lat, R * 1.01), [lon, lat]);
+  return (
+    <group position={pos}>
+      <Billboard>
+        <mesh position={[0, 0.05, 0]}>
+          <sphereGeometry args={[0.032, 12, 12]} />
+          <meshStandardMaterial color="#dff2ff" emissive="#7fd4ff" emissiveIntensity={2.6} />
+        </mesh>
+      </Billboard>
+    </group>
+  );
+}
+
+type LabelPos = { id: string; x: number; y: number; front: boolean };
+
+/* runs inside R3F: project each city to canvas pixel coords every frame */
+function LabelTracker({
+  onUpdate,
+}: {
+  onUpdate: (p: LabelPos[]) => void;
+}) {
+  const cam = useMemo(() => CITIES.map((c) => ll(c.lon, c.lat, R * 1.01)), []);
+  const v = useMemo(() => new THREE.Vector3(), []);
+  useFrame(({ camera, size }) => {
+    const out: LabelPos[] = [];
+    const cp = camera.position;
+    CITIES.forEach((c, i) => {
+      const p = cam[i];
+      v.copy(p).project(camera);
+      // front-facing hemisphere test: surface normal points toward camera
+      const nx = p.x / R, ny = p.y / R, nz = p.z / R;
+      const dx = cp.x - p.x, dy = cp.y - p.y, dz = cp.z - p.z;
+      const dl = Math.hypot(dx, dy, dz);
+      const front = (nx * dx + ny * dy + nz * dz) / dl > 0.02;
+      out.push({
+        id: c.id,
+        x: (v.x * 0.5 + 0.5) * size.width,
+        y: (-v.y * 0.5 + 0.5) * size.height,
+        front,
+      });
+    });
+    onUpdate(out);
+  });
+  return null;
+}
+
+/* pulsing tariff dome */
+function Dome({ lon, lat, on }: { lon: number; lat: number; on: boolean }) {
   const ref = useRef<THREE.Mesh>(null);
   const pos = useMemo(() => ll(lon, lat, R * 1.02), [lon, lat]);
   useFrame(({ clock }) => {
-    if (ref.current) {
-      const k = 1 + Math.sin(clock.elapsedTime * 3) * 0.12;
-      ref.current.scale.setScalar(on ? k : 0.0001);
-    }
+    if (ref.current) ref.current.scale.setScalar(on ? 1 + Math.sin(clock.elapsedTime * 3) * 0.1 : 0.0001);
   });
   return (
     <group position={pos}>
       <mesh ref={ref}>
-        <sphereGeometry args={[0.32, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <sphereGeometry args={[0.34, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
         <meshStandardMaterial
-          color={COLORS.tariff}
-          emissive={COLORS.tariff}
-          emissiveIntensity={0.9}
+          color={COLORS.blocked}
+          emissive={COLORS.blocked}
+          emissiveIntensity={1}
           transparent
-          opacity={0.32}
+          opacity={0.34}
           side={THREE.DoubleSide}
         />
       </mesh>
@@ -325,7 +431,6 @@ function TariffZone({ lon, lat, on }: { lon: number; lat: number; on: boolean })
   );
 }
 
-/* atmosphere fresnel shell */
 function Atmosphere() {
   const mat = useMemo(
     () =>
@@ -343,109 +448,100 @@ function Atmosphere() {
     [],
   );
   return (
-    <mesh scale={1.16} material={mat}>
+    <mesh scale={1.18} material={mat}>
       <sphereGeometry args={[R, 48, 48]} />
     </mesh>
   );
 }
 
-/* ------------------------------------------------------------------ *
+/* ================================================================== *
  * Scene
- * ------------------------------------------------------------------ */
-function GlobeScene({ war, mobile }: { war: boolean; mobile: boolean }) {
-  const t = useViz((s) => s.t);
-  const boost = 1 + (t - 20) * 0.012;
+ * ================================================================== */
+const ROUTES: RouteDef[] = [
+  {
+    id: "export",
+    label: "中国 → 墨西哥",
+    from: [121.5, 31.2],
+    to: [-104.3, 19.05],
+    color: COLORS.cargo,
+    cargoColor: COLORS.cargo,
+    lift: 0.22,
+  },
+  {
+    id: "transit",
+    label: "墨西哥 → 美国",
+    from: [-104.3, 19.05],
+    to: [-118.24, 34.05],
+    color: COLORS.transit,
+    cargoColor: COLORS.transit,
+    lift: 0.13,
+  },
+  {
+    id: "direct",
+    label: "中国 → 美国（直航）",
+    from: [121.5, 31.2],
+    to: [-118.24, 34.05],
+    color: COLORS.blocked,
+    cargoColor: COLORS.blocked,
+    lift: 0.3,
+  },
+];
 
-  // feature indexes: world-atlas countries-110m ids are numeric (id field).
-  // Identify China / Mexico / USA by their numeric ids.
-  const highlight = useMemo(() => {
-    const fc = feature(WORLD as never, WORLD.objects.countries) as unknown as FeatureCollection<
-      Geometry,
-      Record<string, unknown>
-    >;
-    const ids = new Set<number>();
-    fc.features.forEach((f, i) => {
-      const id = Number((f as { id?: number }).id ?? (f.properties as { id?: number })?.id);
-      // China 156, Mexico 484, USA 842 (ISO numeric)
-      if ([156, 484, 842].includes(id)) ids.add(i);
-    });
-    return ids;
+function Scene({
+  war,
+  selected,
+  setSelected,
+  mobile,
+  onLabels,
+}: {
+  war: boolean;
+  selected: string | null;
+  setSelected: (id: string | null) => void;
+  mobile: boolean;
+  onLabels: (p: LabelPos[]) => void;
+}) {
+  const paths = useMemo(() => {
+    const map: Record<string, THREE.Vector3[]> = {};
+    for (const d of ROUTES) {
+      map[d.id] = arcPts(ll(d.from[0], d.from[1]), ll(d.to[0], d.to[1]), d.lift);
+    }
+    return map;
   }, []);
-
-  // China (Shanghai) -> Mexico (Manzanillo) -> USA (Los Angeles)
-  const routes = useMemo(() => {
-    const cn = ll(121.5, 31.2, R);
-    const mx = ll(-104.3, 19.05, R);
-    const us = ll(-118.24, 34.05, R);
-    const seg1 = arc(cn, mx, 0.18);
-    const seg2 = arc(mx, us, 0.12);
-    return { seg1, seg2, full: [...seg1, ...seg2.slice(1)] };
-  }, []);
-
-  const cn = useMemo(() => ll(121.5, 31.2, R), []);
-  const mx = useMemo(() => ll(-104.3, 19.05, R), []);
-  const cargoN = Math.round(6 + boost * 8);
 
   return (
     <>
       <color attach="background" args={["#05080e"]} />
       <ambientLight intensity={0.5} />
-      <directionalLight position={[5, 3, 5]} intensity={1.7} />
-      <Stars radius={40} depth={30} count={1500} factor={2.4} fade speed={0.5} />
+      <directionalLight position={[5, 3, 5]} intensity={1.15} />
+      <Stars radius={40} depth={30} count={1400} factor={2.4} fade speed={0.5} />
 
-      {/* ocean sphere */}
       <mesh>
         <sphereGeometry args={[R, 64, 64]} />
-        <meshStandardMaterial color="#0c1b2a" roughness={0.35} metalness={0.55} />
+        <meshStandardMaterial color="#12283d" roughness={0.72} metalness={0.18} />
       </mesh>
 
-      <Countries highlight={highlight} />
+      <Countries />
+      <Clouds on={!mobile} />
       <Atmosphere />
 
-      {/* routes */}
-      <Line points={routes.seg1} color={COLORS.cargo} lineWidth={2.4} transparent opacity={0.85} />
-      <Line points={routes.seg2} color={COLORS.money} lineWidth={2.4} transparent opacity={0.85} />
-
-      <CargoFlow route={routes.seg1} count={cargoN} color={COLORS.cargo} speed={0.05 * boost} blocked={war} />
-      <CargoFlow
-        route={routes.seg2}
-        count={Math.round(cargoN * 0.7)}
-        color={COLORS.money}
-        speed={0.05 * boost}
-        blocked={war}
-      />
-
-      {/* tariff cost flows back when at war (red, Mexico -> USA border) */}
-      {war && (
-        <CargoFlow
-          route={routes.seg2}
-          count={5}
-          color={COLORS.tariff}
-          speed={0.07}
-          emissive={1.4}
+      {ROUTES.map((d) => (
+        <Route
+          key={d.id}
+          def={d}
+          pts={paths[d.id]}
+          selected={selected === d.id}
+          onSelect={setSelected}
+          war={war}
         />
-      )}
+      ))}
 
-      <City lon={121.5} lat={31.2} lab={[127, 25]} name="上海" sub="中国 · 起运" color={COLORS.cargo} />
-      <City lon={-104.3} lat={19.05} lab={[-96, 12.5]} name="曼萨尼约" sub="墨西哥 · 中转换单" color={COLORS.money} />
-      <City lon={-118.24} lat={34.05} lab={[-127, 43]} name="洛杉矶" sub="美国 · 目的地" color={COLORS.cargo} />
+      {CITIES.map((c) => (
+        <CityMarker key={c.id} lon={c.lon} lat={c.lat} />
+      ))}
+      <LabelTracker onUpdate={onLabels} />
 
-      <TariffZone lon={-118.24} lat={34.05} on={war} />
-      <TariffZone lon={-104.3} lat={19.05} on={war} />
-
-      {war && (
-        <Billboard
-          position={cn
-            .clone()
-            .lerp(mx, 0.52)
-            .normalize()
-            .multiplyScalar(R * 1.42)}
-        >
-          <Text fontSize={0.2} color="#ffd7da" anchorX="center" anchorY="middle">
-            贸易战 · 关税壁垒
-          </Text>
-        </Billboard>
-      )}
+      <Dome lon={-118.24} lat={34.05} on={war} />
+      <Dome lon={-104.3} lat={19.05} on={war} />
 
       <OrbitControls
         enablePan={false}
@@ -454,9 +550,9 @@ function GlobeScene({ war, mobile }: { war: boolean; mobile: boolean }) {
         enableDamping
         dampingFactor={0.08}
         rotateSpeed={0.55}
-        zoomSpeed={0.8}
-        autoRotate={!war}
-        autoRotateSpeed={0.35}
+        zoomSpeed={0.85}
+        autoRotate={!war && !selected}
+        autoRotateSpeed={0.3}
       />
 
       {!mobile && (
@@ -468,22 +564,150 @@ function GlobeScene({ war, mobile }: { war: boolean; mobile: boolean }) {
   );
 }
 
-/* ------------------------------------------------------------------ *
- * HUD
- * ------------------------------------------------------------------ */
+/* ================================================================== *
+ * Live telemetry panel for a selected route
+ * ================================================================== */
+function metrics(id: string, t: number, war: boolean) {
+  const boost = 1 + (t - 20) * 0.012;
+  if (id === "export")
+    return {
+      flow: 96 * boost,
+      value: 43 * boost,
+      rate: war ? 6 : 2,
+      status: war ? "正常出口 · 转口通道" : "正常出口",
+      tone: COLORS.cargo,
+    };
+  if (id === "transit")
+    return {
+      flow: 93 * boost,
+      value: 51 * boost,
+      rate: war ? 12 : 3,
+      status: war ? "中转换单 · 适用USMCA" : "中转内销",
+      tone: COLORS.transit,
+    };
+  return {
+    flow: war ? 3.2 : 88 * boost,
+    value: war ? 1.6 : 47 * boost,
+    rate: war ? 145 : 4,
+    status: war ? "直航被惩罚性关税阻断" : "直航",
+    tone: COLORS.blocked,
+  };
+}
+
+function Row({
+  label,
+  value,
+  unit,
+  tone,
+}: {
+  label: string;
+  value: string;
+  unit: string;
+  tone?: string;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "baseline",
+        padding: "7px 0",
+        borderBottom: "1px solid rgba(255,255,255,.06)",
+      }}
+    >
+      <span style={{ fontSize: 12, color: "#9aa6b2" }}>{label}</span>
+      <span style={{ fontSize: 19, fontWeight: 800, color: tone ?? "#f2f0e9" }}>
+        {value}
+        <span style={{ fontSize: 10, fontWeight: 500, color: "#7d8a97", marginLeft: 4 }}>{unit}</span>
+      </span>
+    </div>
+  );
+}
+
+function Telemetry({
+  id,
+  war,
+  onClose,
+}: {
+  id: string;
+  war: boolean;
+  onClose: () => void;
+}) {
+  const t = useViz((s) => s.t);
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const i = setInterval(() => setTick((x) => x + 1), 850);
+    return () => clearInterval(i);
+  }, []);
+  const def = ROUTES.find((r) => r.id === id)!;
+  const m = metrics(id, t, war);
+  const j1 = 1 + Math.sin(tick * 1.6) * 0.02;
+  const j2 = 1 + Math.cos(tick * 1.3) * 0.018;
+  return (
+    <div
+      style={{
+        position: "absolute",
+        right: 10,
+        bottom: 52,
+        width: "min(260px, 72vw)",
+        pointerEvents: "auto",
+        background: "rgba(12,17,24,.86)",
+        border: `1px solid ${m.tone}55`,
+        borderRadius: 14,
+        padding: "12px 14px",
+        backdropFilter: "blur(10px)",
+        boxShadow: `0 8px 30px rgba(0,0,0,.5), 0 0 22px ${m.tone}22`,
+        fontFamily: "Source Sans 3, sans-serif",
+        animation: "none",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+        <div style={{ fontSize: 14, fontWeight: 800, color: "#f2f0e9" }}>{def.label}</div>
+        <button
+          onClick={onClose}
+          aria-label="关闭"
+          style={{
+            border: "none",
+            cursor: "pointer",
+            background: "rgba(255,255,255,.08)",
+            color: "#aab4c0",
+            borderRadius: 6,
+            width: 22,
+            height: 22,
+            fontSize: 13,
+            lineHeight: 1,
+          }}
+        >
+          ×
+        </button>
+      </div>
+      <div style={{ fontSize: 11, color: m.tone, marginBottom: 2 }}>● {m.status}</div>
+      <Row label="货运吞吐量" value={(m.flow * j1).toFixed(1)} unit="万箱/年" tone={m.tone} />
+      <Row label="贸易额" value={(m.value * j2).toFixed(1)} unit="亿美元/年" />
+      <Row label="适用关税" value={`${m.rate}`} unit="%" tone={m.rate >= 100 ? COLORS.blocked : undefined} />
+      <div style={{ fontSize: 10, color: "#66737f", marginTop: 7 }}>
+        实时遥测 · 数字随补贴 t 与市场波动更新
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================== *
+ * Mode toggle + hint
+ * ================================================================== */
 function Toggle({ war, setWar }: { war: boolean; setWar: (v: boolean) => void }) {
-  const Btn = ({ on, children }: { on: boolean; children: ReactNode }) => (
+  const B = ({ on, children, onClick }: { on: boolean; children: ReactNode; onClick: () => void }) => (
     <button
-      onClick={() => setWar(!war)}
+      onClick={onClick}
       style={{
         border: "none",
         cursor: "pointer",
-        borderRadius: 7,
-        padding: "6px 12px",
+        borderRadius: 8,
+        padding: "7px 13px",
         fontSize: 12,
         fontWeight: 700,
         color: on ? "#0a0e14" : "#aab4c0",
-        background: on ? COLORS.tariff : "transparent",
+        background: on ? (war ? COLORS.blocked : COLORS.cargo) : "transparent",
       }}
     >
       {children}
@@ -493,74 +717,130 @@ function Toggle({ war, setWar }: { war: boolean; setWar: (v: boolean) => void })
     <div
       style={{
         position: "absolute",
-        top: 12,
-        right: 12,
+        top: 10,
+        right: 10,
         display: "flex",
-        gap: 6,
+        gap: 4,
         pointerEvents: "auto",
-        background: "rgba(10,14,20,.72)",
+        background: "rgba(10,14,20,.74)",
         border: "1px solid #26313d",
-        borderRadius: 10,
+        borderRadius: 11,
         padding: 4,
         backdropFilter: "blur(6px)",
       }}
     >
-      <Btn on={!war}>自由贸易</Btn>
-      <Btn on={war}>贸易战</Btn>
+      <B on={!war} onClick={() => setWar(false)}>
+        自由贸易
+      </B>
+      <B on={war} onClick={() => setWar(true)}>
+        贸易战
+      </B>
     </div>
   );
 }
 
-function Legend({ war }: { war: boolean }) {
-  const Row = ({ c, t }: { c: string; t: string }) => (
-    <span style={{ fontSize: 11, color: "#9fb0bd", display: "flex", alignItems: "center", gap: 5 }}>
-      <span style={{ width: 8, height: 8, borderRadius: 3, background: c, boxShadow: `0 0 8px ${c}` }} />
-      {t}
-    </span>
-  );
+function Hint() {
   return (
     <div
       style={{
         position: "absolute",
-        left: 12,
-        bottom: 12,
-        display: "flex",
-        gap: 14,
-        flexWrap: "wrap",
-        background: "rgba(10,14,20,.6)",
-        border: "1px solid #26313d",
-        borderRadius: 10,
-        padding: "8px 12px",
-        backdropFilter: "blur(6px)",
+        left: 10,
+        bottom: 10,
+        fontSize: 11,
+        color: "#82909d",
+        background: "rgba(10,14,20,.55)",
+        padding: "5px 10px",
+        borderRadius: 8,
+        pointerEvents: "none",
       }}
     >
-      <Row c={COLORS.cargo} t="中国 → 墨西哥（出口）" />
-      <Row c={COLORS.money} t="墨西哥 → 美国（中转）" />
-      {war && <Row c={COLORS.tariff} t="关税 / 受阻" />}
-      <span style={{ fontSize: 11, color: "#72808d", marginLeft: "auto" }}>单指旋转 · 双指缩放</span>
+      点击航线看实时数据 · 单指旋转 · 双指缩放
+    </div>
+  );
+}
+
+function LabelOverlay({ labels }: { labels: LabelPos[] }) {
+  return (
+    <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 9 }}>
+      {labels
+        .filter((l) => l.front)
+        .map((l) => {
+          const c = CITIES.find((x) => x.id === l.id)!;
+          const right = c.px[0] < 0;
+          return (
+            <div
+              key={l.id}
+              style={{
+                position: "absolute",
+                left: l.x + c.px[0],
+                top: l.y + c.px[1],
+                transform: "translate(-50%,-50%)",
+                whiteSpace: "nowrap",
+                textAlign: right ? "right" : "left",
+              }}
+            >
+              <div
+                style={{
+                  width: 30,
+                  height: 1,
+                  background: "linear-gradient(90deg, rgba(160,190,215,.65), rgba(160,190,215,0))",
+                  marginBottom: 3,
+                  marginLeft: right ? "auto" : 0,
+                  transform: right ? "scaleX(-1)" : "none",
+                }}
+              />
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: "#f2f0e9",
+                  fontFamily: "Source Sans 3, sans-serif",
+                  textShadow: "0 1px 5px #000",
+                }}
+              >
+                {c.name}
+              </div>
+              <div style={{ fontSize: 10, color: "#9fb0bd" }}>{c.sub}</div>
+            </div>
+          );
+        })}
     </div>
   );
 }
 
 export default function GlobeCanvas() {
   const [war, setWar] = useState(false);
-  const mobile = useIsMobile();
+  const [selected, setSelected] = useState<string | null>(null);
   const [glLost, setGlLost] = useState(false);
+  const [labels, setLabels] = useState<LabelPos[]>([]);
+  const mobile = useIsMobile();
+  const labelRef = useRef<LabelPos[]>([]);
+  const frameCount = useRef(0);
+  const onLabels = useMemo(
+    () => (p: LabelPos[]) => {
+      labelRef.current = p;
+      frameCount.current += 1;
+      // push to React ~20fps, only if front/back set changed enough
+      if (frameCount.current % 3 === 0) setLabels(p.map((q) => ({ ...q })));
+    },
+    [],
+  );
+
   return (
     <div
       style={{
         position: "relative",
         width: "100%",
-        height: "min(78vh, 600px)",
-        minHeight: 420,
+        height: "min(80vh, 600px)",
+        minHeight: 430,
         borderRadius: 12,
         overflow: "hidden",
         background: "#05080e",
       }}
     >
       <Canvas
-        dpr={mobile ? [1, 1.25] : [1, 1.75]}
-        camera={{ position: [-5.7, 1.3, 2.07], fov: 42 }}
+        dpr={mobile ? [1, 1.3] : [1, 1.75]}
+        camera={{ position: [-6.6, 1.5, 2.45], fov: 50 }}
         gl={{
           antialias: !mobile,
           powerPreference: mobile ? "low-power" : "high-performance",
@@ -571,11 +851,15 @@ export default function GlobeCanvas() {
           cv.addEventListener("webglcontextlost", () => setGlLost(true));
           cv.addEventListener("webglcontextrestored", () => setGlLost(false));
         }}
+        onPointerMissed={() => setSelected(null)}
       >
         <Suspense fallback={null}>
-          <GlobeScene war={war} mobile={mobile} />
+          <Scene war={war} selected={selected} setSelected={setSelected} mobile={mobile} onLabels={onLabels} />
         </Suspense>
       </Canvas>
+
+      <LabelOverlay labels={labels} />
+
       {glLost && (
         <div
           style={{
@@ -587,19 +871,45 @@ export default function GlobeCanvas() {
             color: "#c7d0da",
             fontSize: 13,
             lineHeight: 1.7,
-            background: "rgba(5,8,14,.9)",
+            background: "rgba(5,8,14,.92)",
             padding: 24,
           }}
         >
-          <div>
-            3D 图形被手机系统暂时回收以节省资源。
-            <br />
-            请点浏览器刷新重新加载，或改用双指缩小查看。
-          </div>
+          3D 被手机系统暂时回收，请点浏览器刷新重新加载。
         </div>
       )}
+
       <Toggle war={war} setWar={setWar} />
-      <Legend war={war} />
+      {war && (
+        <div
+          style={{
+            position: "absolute",
+            top: 58,
+            left: "50%",
+            transform: "translateX(-50%)",
+            fontFamily: "Source Sans 3, sans-serif",
+            color: "#ffd7da",
+            fontWeight: 800,
+            fontSize: 12.5,
+            letterSpacing: 1.5,
+            padding: "5px 14px",
+            border: `1px solid ${COLORS.blocked}`,
+            borderRadius: 8,
+            background: "rgba(20,12,14,.82)",
+            pointerEvents: "none",
+            whiteSpace: "nowrap",
+            maxWidth: "92%",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          贸易战 · 直航被高关税阻断，货运转走墨西哥
+        </div>
+      )}
+      <Hint />
+      {selected && !glLost && (
+        <Telemetry id={selected} war={war} onClose={() => setSelected(null)} />
+      )}
     </div>
   );
 }
