@@ -517,12 +517,17 @@ function Scene() {
 
       <OrbitControls
         enablePan={false}
-        minDistance={14}
-        maxDistance={42}
-        maxPolarAngle={Math.PI / 2.05}
+        minDistance={9}
+        maxDistance={66}
+        maxPolarAngle={Math.PI / 2.02}
         autoRotate
         autoRotateSpeed={0.35}
         target={[0, 0.5, 0]}
+        zoomSpeed={0.9}
+        touches={{
+          ONE: THREE.TOUCH.ROTATE,
+          TWO: THREE.TOUCH.DOLLY_ROTATE,
+        }}
       />
 
       <EffectComposer>
@@ -595,7 +600,7 @@ function Stat({
   );
 }
 
-function Hud() {
+function Hud({ collapsed }: { collapsed: boolean }) {
   const t = useViz((s) => s.t);
   const mode = useViz((s) => s.mode);
   const setT = useViz((s) => s.setT);
@@ -613,6 +618,8 @@ function Hud() {
         inset: 0,
         pointerEvents: "none",
         fontFamily: "Source Sans 3, sans-serif",
+        opacity: collapsed ? 0 : 1,
+        transition: "opacity .25s ease",
       }}
     >
       <div
@@ -746,6 +753,7 @@ function Hud() {
 
 export default function TradeCanvas({ subsidy: _subsidy }: { subsidy?: number }) {
   const [ready, setReady] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   return (
     <div
       style={{
@@ -764,13 +772,40 @@ export default function TradeCanvas({ subsidy: _subsidy }: { subsidy?: number })
         dpr={[1, 1.75]}
         camera={{ position: [0, 15, 30], fov: 42 }}
         gl={{ antialias: true, powerPreference: "high-performance" }}
+        style={{ touchAction: "none" }}
         onCreated={() => setReady(true)}
       >
         <Suspense fallback={null}>
           <Scene />
         </Suspense>
       </Canvas>
-      {ready && <Hud />}
+            {ready && <Hud collapsed={collapsed} />}
+      {ready && (
+        <button
+          type="button"
+          aria-label={collapsed ? "显示面板" : "收起面板"}
+          onClick={() => setCollapsed((v) => !v)}
+          style={{
+            position: "absolute",
+            top: 12,
+            left: "50%",
+            transform: "translateX(-50%)",
+            pointerEvents: "auto",
+            border: "1px solid #26313d",
+            cursor: "pointer",
+            borderRadius: 999,
+            padding: "6px 14px",
+            fontSize: 12,
+            fontWeight: 700,
+            color: collapsed ? "#0a0e14" : "#c6ced8",
+            background: collapsed ? "#39c6e8" : "rgba(10,14,20,.78)",
+            backdropFilter: "blur(6px)",
+            boxShadow: "0 4px 16px rgba(0,0,0,.4)",
+          }}
+        >
+          {collapsed ? "显示数据面板" : "收起面板看全貌"}
+        </button>
+      )}
       {!ready && (
         <div
           style={{

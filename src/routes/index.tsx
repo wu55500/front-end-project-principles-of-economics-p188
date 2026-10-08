@@ -187,7 +187,7 @@ function SceneSec() {
 
 function MapSec() {
   return (
-    <Wrap id="worldmap" no="04" title="放眼全球：贸易流怎样被补贴改写" sub="世界地图按需加载，弧形为纺织品主要贸易流；调整补贴滑杆可观察流量变化。">
+    <Wrap id="worldmap" no="04" title="放眼全球：立体地球看转口贸易" sub="三维地球按需加载：中国 → 墨西哥中转换单 → 美国；切换贸易战可看关税壁垒动态阻断货流。">
       <WorldTradeMap />
     </Wrap>
   );

@@ -8,7 +8,7 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
 import { Globe2 } from "lucide-react";
 
-const MapCanvas = lazy(() => import("./map-canvas").then((m) => ({ default: m.MapCanvas })));
+const GlobeCanvas = lazy(() => import("./globe"));
 
 export function WorldTradeMap() {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -38,9 +38,9 @@ export function WorldTradeMap() {
         <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 p-8 text-center">
           <Globe2 className="size-8 text-muted" />
           <div>
-            <p className="font-display text-lg">世界贸易流向</p>
+            <p className="font-display text-lg">三维地球 · 转口贸易</p>
             <p className="mx-auto mt-1 max-w-md text-sm text-muted">
-              在世界地图上看纺织品出口补贴如何重塑贸易流。地图数据按需从 CDN 加载，点击后才开始。
+              立体看纺织品 中国 → 墨西哥中转换单 → 美国 的流向；切到贸易战可看关税壁垒如何阻断货流。WebGL 体积较大，点击后才加载，不拖慢首屏。
             </p>
           </div>
           <button
@@ -48,18 +48,18 @@ export function WorldTradeMap() {
             onClick={() => setEnabled(true)}
             className="h-11 rounded-[10px] bg-accent px-4 text-sm font-medium text-accent-fg hover:opacity-90"
           >
-            加载世界地图
+            加载三维地球
           </button>
         </div>
       ) : (
         <Suspense
           fallback={
             <div className="flex min-h-[320px] items-center justify-center text-sm text-muted">
-              正在加载地图数据…
+              正在加载三维地球…
             </div>
           }
         >
-          {visible && <MapCanvas />}
+          {visible && <GlobeCanvas />}
         </Suspense>
       )}
     </div>
