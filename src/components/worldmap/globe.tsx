@@ -33,6 +33,19 @@ import type { FeatureCollection, Geometry, Position } from "geojson";
 import atlas from "@/assets/geo/countries-110m.json";
 import { useViz } from "@/store/viz";
 
+/* Coarse mobile / low-power detection used to shed GPU cost (lower pixel
+ * ratio, skip post-processing) so the WebGL context is not lost on phones. */
+function useIsMobile() {
+  return useMemo(() => {
+    if (typeof navigator === "undefined") return false;
+    const ua = navigator.userAgent || "";
+    const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+    const mem = (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? 8;
+    const cores = navigator.hardwareConcurrency ?? 8;
+    return mobile || mem <= 4 || cores <= 4;
+  }, []);
+}
+
 const R = 2;
 const WORLD = atlas as unknown as {
   objects: { countries: never };
@@ -339,7 +352,7 @@ function Atmosphere() {
 /* ------------------------------------------------------------------ *
  * Scene
  * ------------------------------------------------------------------ */
-function GlobeScene({ war }: { war: boolean }) {
+function GlobeScene({ war, mobile }: { war: boolean; mobile: boolean }) {
   const t = useViz((s) => s.t);
   const boost = 1 + (t - 20) * 0.012;
 
@@ -446,9 +459,11 @@ function GlobeScene({ war }: { war: boolean }) {
         autoRotateSpeed={0.35}
       />
 
-      <EffectComposer>
-        <Bloom intensity={0.6} luminanceThreshold={0.25} luminanceSmoothing={0.35} mipmapBlur />
-      </EffectComposer>
+      {!mobile && (
+        <EffectComposer>
+          <Bloom intensity={0.6} luminanceThreshold={0.25} luminanceSmoothing={0.35} mipmapBlur />
+        </EffectComposer>
+      )}
     </>
   );
 }
@@ -529,6 +544,8 @@ function Legend({ war }: { war: boolean }) {
 
 export default function GlobeCanvas() {
   const [war, setWar] = useState(false);
+  const mobile = useIsMobile();
+  const [glLost, setGlLost] = useState(false);
   return (
     <div
       style={{
@@ -542,15 +559,45 @@ export default function GlobeCanvas() {
       }}
     >
       <Canvas
-        dpr={[1, 1.75]}
+        dpr={mobile ? [1, 1.25] : [1, 1.75]}
         camera={{ position: [-5.7, 1.3, 2.07], fov: 42 }}
-        gl={{ antialias: true }}
+        gl={{
+          antialias: !mobile,
+          powerPreference: mobile ? "low-power" : "high-performance",
+        }}
         style={{ touchAction: "none" }}
+        onCreated={({ gl }) => {
+          const cv = gl.domElement;
+          cv.addEventListener("webglcontextlost", () => setGlLost(true));
+          cv.addEventListener("webglcontextrestored", () => setGlLost(false));
+        }}
       >
         <Suspense fallback={null}>
-          <GlobeScene war={war} />
+          <GlobeScene war={war} mobile={mobile} />
         </Suspense>
       </Canvas>
+      {glLost && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "grid",
+            placeItems: "center",
+            textAlign: "center",
+            color: "#c7d0da",
+            fontSize: 13,
+            lineHeight: 1.7,
+            background: "rgba(5,8,14,.9)",
+            padding: 24,
+          }}
+        >
+          <div>
+            3D 图形被手机系统暂时回收以节省资源。
+            <br />
+            请点浏览器刷新重新加载，或改用双指缩小查看。
+          </div>
+        </div>
+      )}
       <Toggle war={war} setWar={setWar} />
       <Legend war={war} />
     </div>

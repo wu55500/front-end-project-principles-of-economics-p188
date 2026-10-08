@@ -20,13 +20,12 @@ export function WorldTradeMap() {
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
-          if (e.isIntersecting) {
-            setVisible(true);
-            io.disconnect();
-          }
+          if (e.isIntersecting) setVisible(true);
+          // Leave the viewport (incl. a margin) -> unmount to release WebGL.
+          else if (e.intersectionRatio === 0) setVisible(false);
         }
       },
-      { rootMargin: "200px" },
+      { rootMargin: "120px" },
     );
     io.observe(hostRef.current);
     return () => io.disconnect();

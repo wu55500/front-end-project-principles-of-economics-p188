@@ -29,6 +29,19 @@ import { Suspense, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { useViz } from "@/store/viz";
 
+/* Mobile / low-power detection: shed GPU cost (no planar reflection, lower
+ * pixel ratio, no post FX) to keep the WebGL context alive on phones. */
+function useIsMobile() {
+  return useMemo(() => {
+    if (typeof navigator === "undefined") return false;
+    const ua = navigator.userAgent || "";
+    const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+    const mem = (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? 8;
+    const cores = navigator.hardwareConcurrency ?? 8;
+    return mobile || mem <= 4 || cores <= 4;
+  }, []);
+}
+
 /* Palette */
 const C = {
   nlGround: "#14202c",
@@ -341,22 +354,26 @@ function TariffWall({ up }: { up: number }) {
   );
 }
 
-function Ocean() {
+function Ocean({ mobile }: { mobile: boolean }) {
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.35, 0]}>
       <planeGeometry args={[48, 34]} />
-      <MeshReflectorMaterial
-        resolution={512}
-        blur={[300, 60]}
-        mixBlur={0.8}
-        mixStrength={2.2}
-        roughness={0.9}
-        depthScale={0.6}
-        opacity={0.85}
-        color="#0a1824"
-        metalness={0.6}
-        mirror={0.4}
-      />
+      {mobile ? (
+        <meshStandardMaterial color="#0a1824" metalness={0.4} roughness={0.7} />
+      ) : (
+        <MeshReflectorMaterial
+          resolution={512}
+          blur={[300, 60]}
+          mixBlur={0.8}
+          mixStrength={2.2}
+          roughness={0.9}
+          depthScale={0.6}
+          opacity={0.85}
+          color="#0a1824"
+          metalness={0.6}
+          mirror={0.4}
+        />
+      )}
     </mesh>
   );
 }
@@ -395,7 +412,7 @@ function Banner({ text, sub, color }: { text: string; sub: string; color: string
   );
 }
 
-function Scene() {
+function Scene({ mobile }: { mobile: boolean }) {
   const t = useViz((s) => s.t);
   const mode = useViz((s) => s.mode);
   const boost = 1 + (t - 20) * 0.012;
@@ -477,7 +494,7 @@ function Scene() {
 
       <Ground x={-12} color={C.nlGround} />
       <Ground x={12} color={C.isGround} />
-      <Ocean />
+      <Ocean mobile={mobile} />
 
       <Html position={[-12, 4.4, -11]} center distanceFactor={14}>
         <Banner text="邻国 NEIGHBORLAND" sub="出口补贴国" color={C.gov} />
@@ -530,14 +547,16 @@ function Scene() {
         }}
       />
 
-      <EffectComposer>
-        <Bloom
-          intensity={0.55}
-          luminanceThreshold={0.3}
-          luminanceSmoothing={0.3}
-          mipmapBlur
-        />
-      </EffectComposer>
+      {!mobile && (
+        <EffectComposer>
+          <Bloom
+            intensity={0.55}
+            luminanceThreshold={0.3}
+            luminanceSmoothing={0.3}
+            mipmapBlur
+          />
+        </EffectComposer>
+      )}
     </>
   );
 }
@@ -754,6 +773,8 @@ function Hud({ collapsed }: { collapsed: boolean }) {
 export default function TradeCanvas({ subsidy: _subsidy }: { subsidy?: number }) {
   const [ready, setReady] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const mobile = useIsMobile();
+  const [glLost, setGlLost] = useState(false);
   return (
     <div
       style={{
@@ -768,17 +789,43 @@ export default function TradeCanvas({ subsidy: _subsidy }: { subsidy?: number })
       }}
     >
       <Canvas
-        shadows
-        dpr={[1, 1.75]}
+        shadows={!mobile}
+        dpr={mobile ? [1, 1.25] : [1, 1.75]}
         camera={{ position: [0, 15, 30], fov: 42 }}
-        gl={{ antialias: true, powerPreference: "high-performance" }}
+        gl={{
+          antialias: !mobile,
+          powerPreference: mobile ? "low-power" : "high-performance",
+        }}
         style={{ touchAction: "none" }}
-        onCreated={() => setReady(true)}
+        onCreated={({ gl }) => {
+          setReady(true);
+          const cv = gl.domElement;
+          cv.addEventListener("webglcontextlost", () => setGlLost(true));
+          cv.addEventListener("webglcontextrestored", () => setGlLost(false));
+        }}
       >
         <Suspense fallback={null}>
-          <Scene />
+          <Scene mobile={mobile} />
         </Suspense>
       </Canvas>
+      {glLost && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "grid",
+            placeItems: "center",
+            textAlign: "center",
+            color: "#c7d0da",
+            fontSize: 13,
+            lineHeight: 1.7,
+            background: "rgba(7,11,17,.92)",
+            padding: 24,
+          }}
+        >
+          3D 图形被手机系统暂时回收以节省资源，请点浏览器刷新重新加载。
+        </div>
+      )}
             {ready && <Hud collapsed={collapsed} />}
       {ready && (
         <button

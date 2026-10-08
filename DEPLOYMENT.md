@@ -35,6 +35,8 @@ http://139.155.132.81
 | 日志 | Docker json-file 限制单文件 10MB×3，防止打满磁盘 | 日志治理 |
 | 资源保障 | 2G swap，避免构建期内存不足 OOM | 容量规划 |
 | 外链治理 | `VITE_GROK_EXTENSIONS=0`（runner 阶段）关闭第三方平台注入脚本 | 生产零外链依赖、供应链收敛 |
+| 安全响应头 | Nginx 下发 CSP / X-Frame-Options / X-Content-Type-Options / Referrer-Policy / Permissions-Policy | 防点击劫持、MIME 嗅探、权限收敛，对标企业 Web 安全基线 |
+| 3D 稳定性 | 移动端降像素比、关闭反射/辉光、滚出视口卸载、监听 contextlost | 防止手机 GPU 回收 WebGL 上下文导致闪烁 |
 
 ## 复现步骤
 

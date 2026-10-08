@@ -23,13 +23,13 @@ export function TradeScene() {
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
-          if (e.isIntersecting) {
-            setVisible(true);
-            io.disconnect();
-          }
+          if (e.isIntersecting) setVisible(true);
+          // Out of view -> unmount so the WebGL context is freed for the
+          // other 3D scene; prevents context loss on low-memory phones.
+          else if (e.intersectionRatio === 0) setVisible(false);
         }
       },
-      { rootMargin: "200px" },
+      { rootMargin: "120px" },
     );
     io.observe(hostRef.current);
     return () => io.disconnect();
