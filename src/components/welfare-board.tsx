@@ -47,6 +47,11 @@ export function WelfareBoard() {
 
   return (
     <div className="space-y-5">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
+        <span className="font-medium text-fg">动手试试 👇</span>
+        <span className="text-muted">点下方「接受补贴 / 报复关税 / 禁止进口」只看一种选择</span>
+        <span className="text-muted">拖动页面底部的 t 滑块，三张福利账和对比图会实时联动</span>
+      </div>
       <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="情景筛选">
         {FILTERS.map((f) => (
           <button

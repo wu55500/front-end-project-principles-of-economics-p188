@@ -14,9 +14,20 @@ import {
 
 export function CausalPanel() {
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <DidCard />
-      <GrangerCard />
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
+        <span className="font-medium text-fg">动手试试 👇</span>
+        <span className="text-muted">
+          左卡：改四个格子里的数字，下方「政策效应」会立即重算
+        </span>
+        <span className="text-muted">
+          右卡：点 1 / 2 / 3 切换滞后阶数，观察 F 检验是否仍显著
+        </span>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <DidCard />
+        <GrangerCard />
+      </div>
     </div>
   );
 }
