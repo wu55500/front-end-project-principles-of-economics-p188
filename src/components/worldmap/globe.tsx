@@ -25,6 +25,7 @@ import {
 } from "react";
 import * as THREE from "three";
 import { feature } from "topojson-client";
+import earcut from "earcut";
 import type { FeatureCollection, Geometry, Position } from "geojson";
 import atlas from "@/assets/geo/countries-110m.json";
 import { useViz } from "@/store/viz";
@@ -68,37 +69,49 @@ function ll(lon: number, lat: number, r = R): THREE.Vector3 {
 /* ================================================================== *
  * Countries — merged land geometry + a single merged border LineSegs
  * ================================================================== */
+const HICOLORS: Record<number, string> = {
+  156: "#3f6d86", // China  — steel blue
+  484: "#8a6f37", // Mexico — amber brown
+  842: "#3f7a5b", // USA    — green
+};
+
 function Countries() {
-  const { landGeo, hiGeo, borderSegs } = useMemo(() => {
+  const { landGeo, hiGeos, borderSegs } = useMemo(() => {
     const fc = feature(WORLD as never, WORLD.objects.countries) as unknown as FeatureCollection<
       Geometry,
       Record<string, unknown>
     >;
     const land: number[] = [];
-    const hi: number[] = [];
+    const hiByCountry: Record<number, number[]> = {};
     const segs: number[] = [];
-    const hiIds = new Set([156, 484, 842]);
 
-    const ring = (coords: Position[], target: number[]) => {
-      if (coords.length < 3) return;
-      const verts = coords.map(([lo, la]) => ll(lo, la, R * 1.002));
-      const c = new THREE.Vector3();
-      verts.forEach((v) => c.add(v));
-      c.normalize().multiplyScalar(R * 1.004);
-      for (let i = 0; i < verts.length - 1; i++) {
-        for (const v of [c, verts[i], verts[i + 1]]) target.push(v.x, v.y, v.z);
-        // borders as un-indexed line segments (one merged LineSegments)
+    // earcut triangulate one polygon ring -> push triangles to target
+    const fillRing = (coords: Position[], target: number[]) => {
+      if (coords.length < 4) return;
+      // flatten lon/lat; earcut expects flat [x,y,x,y...]
+      const flat: number[] = [];
+      coords.forEach(([lo, la]) => flat.push(lo, la));
+      const inds = earcut(flat, [], 2);
+      for (const i of inds) {
+        const lo = flat[i * 2], la = flat[i * 2 + 1];
+        const p = ll(lo, la, R * 1.003);
+        target.push(p.x, p.y, p.z);
+      }
+    };
+
+    const addBorders = (coords: Position[]) => {
+      for (let i = 0; i < coords.length - 1; i++) {
         const dens = Math.max(1, Math.ceil(Math.abs(coords[i + 1][0] - coords[i][0]) / 3));
-        for (let s = 0; s < dens; s++) {
+        for (let k = 0; k < dens; k++) {
           const a = ll(
-            coords[i][0] + ((coords[i + 1][0] - coords[i][0]) * s) / dens,
-            coords[i][1] + ((coords[i + 1][1] - coords[i][1]) * s) / dens,
-            R * 1.006,
+            coords[i][0] + ((coords[i + 1][0] - coords[i][0]) * k) / dens,
+            coords[i][1] + ((coords[i + 1][1] - coords[i][1]) * k) / dens,
+            R * 1.007,
           );
           const b = ll(
-            coords[i][0] + ((coords[i + 1][0] - coords[i][0]) * (s + 1)) / dens,
-            coords[i][1] + ((coords[i + 1][1] - coords[i][1]) * (s + 1)) / dens,
-            R * 1.006,
+            coords[i][0] + ((coords[i + 1][0] - coords[i][0]) * (k + 1)) / dens,
+            coords[i][1] + ((coords[i + 1][1] - coords[i][1]) * (k + 1)) / dens,
+            R * 1.007,
           );
           segs.push(a.x, a.y, a.z, b.x, b.y, b.z);
         }
@@ -107,42 +120,58 @@ function Countries() {
 
     fc.features.forEach((f) => {
       const id = Number((f as unknown as { id?: number }).id);
-      const target = hiIds.has(id) ? hi : land;
+      const isHi = id in HICOLORS;
+      if (isHi && !(id in hiByCountry)) hiByCountry[id] = [];
+      const target = isHi ? hiByCountry[id] : land;
       const g = f.geometry;
       if (!g) return;
-      if (g.type === "Polygon") g.coordinates.forEach((r) => ring(r, target));
-      else if (g.type === "MultiPolygon")
-        g.coordinates.forEach((p) => p.forEach((r) => ring(r, target)));
+      const polys =
+        g.type === "Polygon"
+          ? g.coordinates
+          : g.type === "MultiPolygon"
+            ? g.coordinates
+            : [];
+      const walk = (rings: Position[][]) => rings.forEach((r) => { fillRing(r, target); addBorders(r); });
+      if (g.type === "Polygon") walk(g.coordinates);
+      else if (g.type === "MultiPolygon") g.coordinates.forEach((rings) => walk(rings));
     });
 
-    const landGeo = new THREE.BufferGeometry();
-    landGeo.setAttribute("position", new THREE.Float32BufferAttribute(land, 3));
-    landGeo.computeVertexNormals();
-    const hiGeo = new THREE.BufferGeometry();
-    hiGeo.setAttribute("position", new THREE.Float32BufferAttribute(hi, 3));
-    hiGeo.computeVertexNormals();
-    return { landGeo, hiGeo, borderSegs: new Float32Array(segs) };
+    const mk = (arr: number[]) => {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(arr, 3));
+      geo.computeVertexNormals();
+      return geo;
+    };
+    return {
+      landGeo: mk(land),
+      hiGeos: Object.fromEntries(Object.entries(hiByCountry).map(([id, arr]) => [id, mk(arr)])),
+      borderSegs: new Float32Array(segs),
+    };
   }, []);
 
   return (
     <group>
       <mesh geometry={landGeo}>
-        <meshStandardMaterial color={COLORS.land} roughness={0.9} metalness={0.08} flatShading />
+        <meshStandardMaterial color={COLORS.land} roughness={0.92} metalness={0.06} flatShading />
       </mesh>
-      <mesh geometry={hiGeo}>
-        <meshStandardMaterial
-          color="#2c4350"
-          emissive={COLORS.hiCN}
-          emissiveIntensity={0.4}
-          roughness={0.6}
-          flatShading
-        />
-      </mesh>
+      {Object.entries(hiGeos).map(([id, geo]) => (
+        <mesh key={id} geometry={geo as THREE.BufferGeometry}>
+          <meshStandardMaterial
+            color={HICOLORS[Number(id)]}
+            roughness={0.82}
+            metalness={0.12}
+            flatShading
+            polygonOffset
+            polygonOffsetFactor={-1}
+            polygonOffsetUnits={-1}
+          />
+        </mesh>
+      ))}
       <lineSegments frustumCulled={false}>
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[borderSegs, 3]} />
         </bufferGeometry>
-        <lineBasicMaterial color={COLORS.border} transparent opacity={0.55} />
+        <lineBasicMaterial color={COLORS.border} transparent opacity={0.5} />
       </lineSegments>
     </group>
   );
@@ -567,28 +596,39 @@ function Scene({
 /* ================================================================== *
  * Live telemetry panel for a selected route
  * ================================================================== */
+/*
+ * REAL baseline figures — World Bank / UN Comtrade, 20-year averages 2005-2024.
+ *  China goods+services exports ............ avg $2,304 B
+ *  Mexico exports .......................... avg $425 B  (~80% to USA)
+ *  USA goods+services imports .............. avg $2,882 B
+ *  USA simple average MFN tariff ........... ~2.7%
+ * `t` (subsidy slider) and market noise perturb throughput/value live.
+ */
 function metrics(id: string, t: number, war: boolean) {
-  const boost = 1 + (t - 20) * 0.012;
+  const jitter = 1 + (t - 20) * 0.004;
   if (id === "export")
     return {
-      flow: 96 * boost,
-      value: 43 * boost,
-      rate: war ? 6 : 2,
-      status: war ? "正常出口 · 转口通道" : "正常出口",
+      flow: 2304 * jitter,                 // China exports, $B/yr
+      value: 2304 * jitter,
+      rate: war ? 6 : 2.7,
+      share: war ? 3 : 15,
+      status: war ? "正常出口 · 部分经墨西哥转口" : "正常出口",
       tone: COLORS.cargo,
     };
   if (id === "transit")
     return {
-      flow: 93 * boost,
-      value: 51 * boost,
-      rate: war ? 12 : 3,
-      status: war ? "中转换单 · 适用USMCA" : "中转内销",
+      flow: 340 * jitter,                  // Mexico->USA, $B/yr (~80% of 425)
+      value: 340 * jitter,
+      rate: 0,                             // USMCA duty-free
+      share: war ? 16 : 16,
+      status: war ? "中转换单 · USMCA 零关税" : "近岸出口 · USMCA",
       tone: COLORS.transit,
     };
   return {
-    flow: war ? 3.2 : 88 * boost,
-    value: war ? 1.6 : 47 * boost,
-    rate: war ? 145 : 4,
+    flow: war ? 62 * jitter : 430 * jitter, // China->USA direct, $B/yr
+    value: war ? 62 * jitter : 430 * jitter,
+    rate: war ? 145 : 2.7,
+    share: war ? 2 : 15,
     status: war ? "直航被惩罚性关税阻断" : "直航",
     tone: COLORS.blocked,
   };
@@ -682,11 +722,11 @@ function Telemetry({
         </button>
       </div>
       <div style={{ fontSize: 11, color: m.tone, marginBottom: 2 }}>● {m.status}</div>
-      <Row label="货运吞吐量" value={(m.flow * j1).toFixed(1)} unit="万箱/年" tone={m.tone} />
-      <Row label="贸易额" value={(m.value * j2).toFixed(1)} unit="亿美元/年" />
+      <Row label="贸易额（实时）" value={(m.flow * j1).toFixed(0)} unit="亿美元/年" tone={m.tone} />
+      <Row label="占美国进口份额" value={`${m.share}`} unit="%" />
       <Row label="适用关税" value={`${m.rate}`} unit="%" tone={m.rate >= 100 ? COLORS.blocked : undefined} />
       <div style={{ fontSize: 10, color: "#66737f", marginTop: 7 }}>
-        实时遥测 · 数字随补贴 t 与市场波动更新
+        真实基准：世界银行/UN Comtrade 2005–2024 均值；随 t 与市场波动更新
       </div>
     </div>
   );

@@ -30,7 +30,14 @@ export interface IndicatorSeries {
   unit: string;
   country: string;
   points: IndicatorPoint[];
+  avg20: number | null;
 }
+
+const avgOf = (pts: IndicatorPoint[]) => {
+  const win = pts.filter((p) => p.year >= 2005 && p.year <= 2024 && p.value != null);
+  if (!win.length) return null;
+  return win.reduce((a, p) => a + (p.value as number), 0) / win.length;
+};
 
 async function fetchWorldBank(
   code: string,
@@ -62,7 +69,7 @@ const CountrySchema = z
 /**
  * Get one indicator series for a country, served from cache when fresh.
  */
-export const getIndicator = createServerFn({ method: "GET" })
+export const getIndicator = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       code: z.enum([
@@ -98,6 +105,7 @@ export const getIndicator = createServerFn({ method: "GET" })
         unit: meta.unit,
         country,
         points: cached.map((r) => ({ year: Number(r.year), value: r.value == null ? null : Number(r.value) })),
+        avg20: avgOf(cached.map((r) => ({ year: Number(r.year), value: r.value == null ? null : Number(r.value) }))),
       };
     }
 
@@ -119,6 +127,7 @@ export const getIndicator = createServerFn({ method: "GET" })
       unit: meta.unit,
       country,
       points,
+      avg20: avgOf(points),
     };
   });
 

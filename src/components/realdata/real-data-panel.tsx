@@ -95,14 +95,25 @@ export function RealDataPanel() {
           </div>
         ) : series && series.points.length ? (
           <>
-            <div className="flex items-baseline gap-2">
-              <TrendingUp className="size-4 text-accent" />
-              <span className="font-display text-3xl">
-                {latest?.value != null ? latest.value.toFixed(1) : "—"}
-              </span>
-              <span className="text-sm text-muted">
-                {series.unit} · {latest?.year}
-              </span>
+            {loading && <div className="mb-2 text-xs text-dim">正在按新选择取数…</div>}
+            <div className="flex flex-wrap items-end gap-x-6 gap-y-2">
+              <div className="flex items-baseline gap-2">
+                <TrendingUp className="size-4 text-accent" />
+                <span className="font-display text-3xl">
+                  {latest?.value != null ? latest.value.toFixed(1) : "—"}
+                </span>
+                <span className="text-sm text-muted">
+                  {series.unit} · {latest?.year} 最新
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="font-display text-2xl text-is">
+                  {series.avg20 != null ? series.avg20.toFixed(1) : "—"}
+                </span>
+                <span className="text-xs text-muted">
+                  {series.unit} · 2005–2024 二十年平均
+                </span>
+              </div>
             </div>
             <svg viewBox="0 0 600 180" className="mt-3 w-full">
               <path d={line?.area} fill="rgba(201,180,88,.12)" stroke="none" />

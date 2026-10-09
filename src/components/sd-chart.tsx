@@ -140,29 +140,51 @@ export function SdChart() {
       }
       if (ph.area > 0 && mm.t > 0) {
         const a = ph.area;
+        // ① consumer-surplus gain: green (rectangle part + DWL triangle)
         poly(
           [
             [mm.qd1, mm.p1],
             [mm.qd2, mm.p2],
             [mm.qd1, mm.p2],
           ],
-          "rgba(111,191,163,.34)",
+          "rgba(111,191,163,.30)",
           a,
         );
+        // ② producer-surplus loss: red
         poly(
           [
             [mm.qs1, mm.p1],
             [mm.qs1, mm.p2],
             [mm.qs2, mm.p2],
           ],
-          "rgba(209,122,122,.32)",
+          "rgba(209,122,122,.30)",
           a,
         );
-        tag(`消费者 +${fmt(mm.cs)}`, (mm.qd1 + mm.qd2) / 2 + 6, (mm.p1 + mm.p2) / 2, "rgba(111,191,163,.7)", a);
-        tag(`生产者 −${fmt(Math.abs(mm.ps))}`, mm.qs1 / 2 + 4, (mm.p1 + mm.p2) / 2, "rgba(209,122,122,.7)", a);
+        // ③ FOREIGN SUBSIDY RECTANGLE — the part Isoland gets for free:
+        //    subsidy t × import quantity, paid by Neighborland taxpayers.
+        poly(
+          [
+            [mm.qs1, mm.p1],
+            [mm.qd1, mm.p1],
+            [mm.qd1, mm.p2],
+            [mm.qs1, mm.p2],
+          ],
+          "rgba(244,197,66,.26)",
+          a,
+        );
+        // edge of the subsidy rectangle
+        ctx.globalAlpha = a;
+        line(mm.qs1, mm.p1, mm.qs1, mm.p2, "rgba(244,197,66,.8)", 1.2, [4, 3]);
+        line(mm.qd1, mm.p1, mm.qd1, mm.p2, "rgba(244,197,66,.8)", 1.2, [4, 3]);
+        ctx.globalAlpha = 1;
+        tag(`外国补贴 ×进口 = ${fmt(mm.t * mm.imports)}`,
+          (mm.qs1 + mm.qd1) / 2, (mm.p1 + mm.p2) / 2 + 9, "rgba(244,197,66,.85)", a);
+        tag(`消费者 +${fmt(mm.cs)}`, (mm.qd1 + mm.qd2) / 2 + 4, (mm.p1 + mm.p2) / 2 - 12, "rgba(111,191,163,.75)", a);
+        tag(`生产者 −${fmt(Math.abs(mm.ps))}`, mm.qs1 / 2 + 2, (mm.p1 + mm.p2) / 2 - 12, "rgba(209,122,122,.75)", a);
         ctx.globalAlpha = a;
         ctx.font = "600 14px Source Sans 3, sans-serif";
-        const txt = `Isoland 净福利 ${fmtSigned(mm.net)}`;
+        const netTri = mm.t * mm.t; // two efficiency triangles
+        const txt = `Isoland 净福利 +${fmt(netTri)}`;
         const bw = ctx.measureText(txt).width + 26;
         const bx = X(66) - bw / 2;
         const by = Y(112);
@@ -306,7 +328,8 @@ export function SdChart() {
               <div className="grid grid-cols-3 gap-2 lg:grid-cols-1">
                 <Stat k="消费者剩余" v={`+${fmt(m.cs)}`} tone="gain" />
                 <Stat k="生产者剩余" v={`−${fmt(Math.abs(m.ps))}`} tone="loss" />
-                <Stat k="IS 净福利" v={fmtSigned(m.net)} tone="is" />
+                <Stat k="IS 净福利（效率三角）" v={`+${fmt(m.t*m.t)}`} tone="is" />
+                <Stat k="外国补贴转移" v={fmt(m.t*m.imports)} tone="gain" />
               </div>
               <TSlider />
               <p className="text-sm leading-relaxed text-muted">

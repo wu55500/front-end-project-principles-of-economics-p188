@@ -283,7 +283,7 @@ function ActorNode({ a }: { a: Anchor }) {
         <sphereGeometry args={[0.14, 10, 10]} />
         <meshStandardMaterial color={color} emissive={color} emissiveIntensity={2} />
       </mesh>
-      <Html position={[0, 3.3, 0]} center distanceFactor={11} zIndexRange={[20, 0]}>
+      <Html position={[0, 3.35, 0]} center zIndexRange={[20, 0]}>
         <div
           style={{
             whiteSpace: "nowrap",
@@ -291,19 +291,29 @@ function ActorNode({ a }: { a: Anchor }) {
             fontFamily: "Source Sans 3, sans-serif",
             pointerEvents: "none",
             userSelect: "none",
+            transform: "translateZ(0)",
           }}
         >
           <div
             style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: "#f3f1ea",
-              textShadow: "0 1px 6px #000",
+              fontSize: 14,
+              fontWeight: 800,
+              color: "#f4f2ec",
+              letterSpacing: 0.4,
+              padding: "3px 10px",
+              borderRadius: 9,
+              border: `1px solid ${color}`,
+              background: `linear-gradient(180deg, ${color}30, ${color}12)`,
+              boxShadow: `0 2px 10px rgba(0,0,0,.55), 0 0 10px ${color}30`,
+              textShadow: "0 1px 4px #000",
             }}
           >
+            <span style={{ color, marginRight: 5 }}>●</span>
             {a.label}
           </div>
-          <div style={{ fontSize: 11, color: "#aab4c0" }}>{a.sub}</div>
+          <div style={{ fontSize: 10.5, color: "#b7c2cd", marginTop: 2, textShadow: "0 1px 4px #000" }}>
+            {a.sub}
+          </div>
         </div>
       </Html>
     </group>
@@ -330,7 +340,7 @@ function TariffWall({ up }: { up: number }) {
         </mesh>
       ))}
       {up > 0.6 && (
-        <Html position={[0, 3.1, 0]} center distanceFactor={10}>
+        <Html position={[0, 3.1, 0]} center>
           <div
             style={{
               fontFamily: "Source Sans 3, sans-serif",
@@ -496,10 +506,10 @@ function Scene({ mobile }: { mobile: boolean }) {
       <Ground x={12} color={C.isGround} />
       <Ocean mobile={mobile} />
 
-      <Html position={[-12, 4.4, -11]} center distanceFactor={14}>
+      <Html position={[-12, 4.4, -11]} center>
         <Banner text="邻国 NEIGHBORLAND" sub="出口补贴国" color={C.gov} />
       </Html>
-      <Html position={[12, 4.4, -11]} center distanceFactor={14}>
+      <Html position={[12, 4.4, -11]} center>
         <Banner text="岛国 ISOLAND" sub="进口国" color={C.con} />
       </Html>
 
