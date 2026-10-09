@@ -85,13 +85,22 @@ function Countries() {
     const hiByCountry: Record<number, number[]> = {};
     const segs: number[] = [];
 
-    // earcut triangulate one polygon ring -> push triangles to target
-    const fillRing = (coords: Position[], target: number[]) => {
-      if (coords.length < 4) return;
-      // flatten lon/lat; earcut expects flat [x,y,x,y...]
+    // earcut triangulate a polygon (outer ring + inner holes). Holes must
+    // be passed as index offsets, NOT filled independently — otherwise
+    // every lake is rendered as land (the Mexico "shadow" bug).
+    const fillPolygon = (rings: Position[][], target: number[]) => {
+      const outer = rings[0];
+      if (!outer || outer.length < 4) return;
       const flat: number[] = [];
-      coords.forEach(([lo, la]) => flat.push(lo, la));
-      const inds = earcut(flat, [], 2);
+      outer.forEach(([lo, la]) => flat.push(lo, la));
+      const holeIdx: number[] = [];
+      let offset = outer.length;
+      for (let h = 1; h < rings.length; h++) {
+        holeIdx.push(offset);
+        rings[h].forEach(([lo, la]) => flat.push(lo, la));
+        offset += rings[h].length;
+      }
+      const inds = earcut(flat, holeIdx, 2);
       for (const i of inds) {
         const lo = flat[i * 2], la = flat[i * 2 + 1];
         const p = ll(lo, la, R * 1.003);
@@ -131,9 +140,15 @@ function Countries() {
           : g.type === "MultiPolygon"
             ? g.coordinates
             : [];
-      const walk = (rings: Position[][]) => rings.forEach((r) => { fillRing(r, target); addBorders(r); });
-      if (g.type === "Polygon") walk(g.coordinates);
-      else if (g.type === "MultiPolygon") g.coordinates.forEach((rings) => walk(rings));
+      if (g.type === "Polygon") {
+        fillPolygon(g.coordinates, target);
+        g.coordinates.forEach((r) => addBorders(r));
+      } else if (g.type === "MultiPolygon") {
+        g.coordinates.forEach((rings) => {
+          fillPolygon(rings, target);
+          rings.forEach((r) => addBorders(r));
+        });
+      }
     });
 
     const mk = (arr: number[]) => {
@@ -404,34 +419,86 @@ function CityMarker({ lon, lat }: { lon: number; lat: number }) {
 }
 
 type LabelPos = { id: string; x: number; y: number; front: boolean };
+type ChipPos = {
+  id: string;
+  x: number;
+  y: number;
+  front: boolean;
+  value: number;
+  up: boolean;
+  color: string;
+};
+type OverlayData = { cities: LabelPos[]; chips: ChipPos[] };
+
+/* jittering live trade value around the real 20-year baseline ($B/yr) */
+function liveValue(id: string, t: number, war: boolean, k: number) {
+  const wave = 0.5 * Math.sin(k * 0.85) + 0.5 * Math.sin(k * 0.33 + 1.4); // -1..1
+  const base = id === "export" ? 2304 : id === "transit" ? 340 : war ? 62 : 430;
+  if (id === "direct" && war) return Math.max(8, base * (1 + wave * 0.28));
+  return Math.max(0, base * (1 + (t - 20) * 0.004) * (1 + wave * 0.13));
+}
 
 /* runs inside R3F: project each city to canvas pixel coords every frame */
-function LabelTracker({
+function OverlayTracker({
+  paths,
+  war,
+  t,
   onUpdate,
 }: {
-  onUpdate: (p: LabelPos[]) => void;
+  paths: Record<string, THREE.Vector3[]>;
+  war: boolean;
+  t: number;
+  onUpdate: (d: OverlayData) => void;
 }) {
-  const cam = useMemo(() => CITIES.map((c) => ll(c.lon, c.lat, R * 1.01)), []);
+  const cityPts = useMemo(() => CITIES.map((c) => ll(c.lon, c.lat, R * 1.01)), []);
   const v = useMemo(() => new THREE.Vector3(), []);
-  useFrame(({ camera, size }) => {
-    const out: LabelPos[] = [];
+  const k = useRef(0);
+  const prev = useRef<Record<string, number>>({});
+
+  const project = (p: THREE.Vector3, camera: THREE.Camera, size: { width: number; height: number }) => {
+    v.copy(p).project(camera);
+    return {
+      x: (v.x * 0.5 + 0.5) * size.width,
+      y: (-v.y * 0.5 + 0.5) * size.height,
+    };
+  };
+  const isFront = (p: THREE.Vector3, cp: THREE.Vector3) => {
+    const pl = Math.hypot(p.x, p.y, p.z) || 1;
+    const nx = p.x / pl, ny = p.y / pl, nz = p.z / pl;
+    const dx = cp.x - p.x, dy = cp.y - p.y, dz = cp.z - p.z;
+    const dl = Math.hypot(dx, dy, dz) || 1;
+    return (nx * dx + ny * dy + nz * dz) / dl > 0.02;
+  };
+
+  useFrame(({ camera, size, clock }, dt) => {
+    k.current += Math.min(dt, 0.05);
     const cp = camera.position;
-    CITIES.forEach((c, i) => {
-      const p = cam[i];
-      v.copy(p).project(camera);
-      // front-facing hemisphere test: surface normal points toward camera
-      const nx = p.x / R, ny = p.y / R, nz = p.z / R;
-      const dx = cp.x - p.x, dy = cp.y - p.y, dz = cp.z - p.z;
-      const dl = Math.hypot(dx, dy, dz);
-      const front = (nx * dx + ny * dy + nz * dz) / dl > 0.02;
-      out.push({
-        id: c.id,
-        x: (v.x * 0.5 + 0.5) * size.width,
-        y: (-v.y * 0.5 + 0.5) * size.height,
-        front,
+    const cities: LabelPos[] = cityPts.map((p, i) => ({
+      id: CITIES[i].id,
+      ...project(p, camera, size),
+      front: isFront(p, cp),
+    }));
+
+    const chips: ChipPos[] = [];
+    for (const d of ROUTES) {
+      if (d.id === "direct" && !war) continue;
+      const pts = paths[d.id];
+      const mid = pts[Math.floor(pts.length / 2)];
+      const value = liveValue(d.id, t, war, clock.elapsedTime);
+      const before = prev.current[d.id];
+      const pr = project(mid, camera, size);
+      chips.push({
+        id: d.id,
+        x: Math.min(size.width - 58, Math.max(58, pr.x)),
+        y: Math.min(size.height - 16, Math.max(16, pr.y)),
+        front: isFront(mid, cp),
+        value,
+        up: before === undefined ? true : value >= before,
+        color: d.color,
       });
-    });
-    onUpdate(out);
+      prev.current[d.id] = value;
+    }
+    onUpdate({ cities, chips });
   });
   return null;
 }
@@ -521,13 +588,15 @@ function Scene({
   selected,
   setSelected,
   mobile,
-  onLabels,
+  t,
+  onOverlay,
 }: {
   war: boolean;
   selected: string | null;
   setSelected: (id: string | null) => void;
   mobile: boolean;
-  onLabels: (p: LabelPos[]) => void;
+  t: number;
+  onOverlay: (d: OverlayData) => void;
 }) {
   const paths = useMemo(() => {
     const map: Record<string, THREE.Vector3[]> = {};
@@ -567,7 +636,7 @@ function Scene({
       {CITIES.map((c) => (
         <CityMarker key={c.id} lon={c.lon} lat={c.lat} />
       ))}
-      <LabelTracker onUpdate={onLabels} />
+      <OverlayTracker paths={paths} war={war} t={t} onUpdate={onOverlay} />
 
       <Dome lon={-118.24} lat={34.05} on={war} />
       <Dome lon={-104.3} lat={19.05} on={war} />
@@ -675,14 +744,35 @@ function Telemetry({
 }) {
   const t = useViz((s) => s.t);
   const [tick, setTick] = useState(0);
+  const [hist, setHist] = useState<number[]>([]);
   useEffect(() => {
-    const i = setInterval(() => setTick((x) => x + 1), 850);
+    const i = setInterval(() => setTick((x) => x + 1), 700);
     return () => clearInterval(i);
   }, []);
   const def = ROUTES.find((r) => r.id === id)!;
   const m = metrics(id, t, war);
+  const live = liveValue(id, t, war, tick * 0.7);
+  useEffect(() => {
+    setHist((h) => [...h.slice(-33), live]);
+  }, [tick]); // eslint-disable-line react-hooks/exhaustive-deps
   const j1 = 1 + Math.sin(tick * 1.6) * 0.02;
   const j2 = 1 + Math.cos(tick * 1.3) * 0.018;
+
+  // build sparkline path from history
+  const spark = (() => {
+    if (hist.length < 2) return { path: "", area: "" };
+    const W = 232, H = 46;
+    const lo = Math.min(...hist), hi = Math.max(...hist);
+    const span = hi - lo || 1;
+    const pts = hist.map((v, i) => {
+      const x = (i / (hist.length - 1)) * W;
+      const y = H - ((v - lo) / span) * (H - 6) - 3;
+      return [x, y];
+    });
+    const path = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+    const area = `${path} L${W},${H} L0,${H} Z`;
+    return { path, area };
+  })();
   return (
     <div
       style={{
@@ -725,6 +815,15 @@ function Telemetry({
       <Row label="贸易额（实时）" value={(m.flow * j1).toFixed(0)} unit="亿美元/年" tone={m.tone} />
       <Row label="占美国进口份额" value={`${m.share}`} unit="%" />
       <Row label="适用关税" value={`${m.rate}`} unit="%" tone={m.rate >= 100 ? COLORS.blocked : undefined} />
+      <div style={{ marginTop: 9 }}>
+        <div style={{ fontSize: 10, color: "#8b98a5", marginBottom: 3 }}>
+          实时走势 · {Math.round(live).toLocaleString()} 亿$/年
+        </div>
+        <svg viewBox="0 0 232 46" style={{ width: "100%", height: 46, display: "block" }}>
+          <path d={spark.area} fill={`${m.tone}22`} />
+          <path d={spark.path} fill="none" stroke={m.tone} strokeWidth={1.8} />
+        </svg>
+      </div>
       <div style={{ fontSize: 10, color: "#66737f", marginTop: 7 }}>
         真实基准：世界银行/UN Comtrade 2005–2024 均值；随 t 与市场波动更新
       </div>
@@ -799,10 +898,10 @@ function Hint() {
   );
 }
 
-function LabelOverlay({ labels }: { labels: LabelPos[] }) {
+function LabelOverlay({ data }: { data: OverlayData }) {
   return (
     <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 9 }}>
-      {labels
+      {data.cities
         .filter((l) => l.front)
         .map((l) => {
           const c = CITIES.find((x) => x.id === l.id)!;
@@ -844,6 +943,36 @@ function LabelOverlay({ labels }: { labels: LabelPos[] }) {
             </div>
           );
         })}
+
+      {data.chips
+        .filter((c) => c.front)
+        .map((c) => (
+          <div
+            key={c.id}
+            style={{
+              position: "absolute",
+              left: c.x,
+              top: c.y,
+              transform: "translate(-50%,-50%)",
+              fontFamily: "Source Sans 3, sans-serif",
+              fontSize: 12,
+              fontWeight: 800,
+              color: "#f4f2ec",
+              padding: "3px 9px",
+              borderRadius: 999,
+              border: `1px solid ${c.color}`,
+              background: "rgba(8,12,18,.82)",
+              boxShadow: `0 2px 10px rgba(0,0,0,.5), 0 0 12px ${c.color}38`,
+              whiteSpace: "nowrap",
+            }}
+          >
+            <span style={{ color: c.up ? "#5fe0a0" : "#ff8a8a", marginRight: 4 }}>
+              {c.up ? "▲" : "▼"}
+            </span>
+            {Math.round(c.value).toLocaleString()}
+            <span style={{ fontSize: 9, color: "#93a1ad", marginLeft: 4 }}>亿$/年</span>
+          </div>
+        ))}
     </div>
   );
 }
@@ -852,16 +981,15 @@ export default function GlobeCanvas() {
   const [war, setWar] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [glLost, setGlLost] = useState(false);
-  const [labels, setLabels] = useState<LabelPos[]>([]);
+  const t = useViz((s) => s.t);
+  const [overlay, setOverlay] = useState<OverlayData>({ cities: [], chips: [] });
   const mobile = useIsMobile();
-  const labelRef = useRef<LabelPos[]>([]);
   const frameCount = useRef(0);
-  const onLabels = useMemo(
-    () => (p: LabelPos[]) => {
-      labelRef.current = p;
+  const onOverlay = useMemo(
+    () => (d: OverlayData) => {
       frameCount.current += 1;
-      // push to React ~20fps, only if front/back set changed enough
-      if (frameCount.current % 3 === 0) setLabels(p.map((q) => ({ ...q })));
+      // push to React ~20fps
+      if (frameCount.current % 3 === 0) setOverlay({ cities: d.cities, chips: d.chips });
     },
     [],
   );
@@ -894,11 +1022,11 @@ export default function GlobeCanvas() {
         onPointerMissed={() => setSelected(null)}
       >
         <Suspense fallback={null}>
-          <Scene war={war} selected={selected} setSelected={setSelected} mobile={mobile} onLabels={onLabels} />
+          <Scene war={war} selected={selected} setSelected={setSelected} mobile={mobile} t={t} onOverlay={onOverlay} />
         </Suspense>
       </Canvas>
 
-      <LabelOverlay labels={labels} />
+      <LabelOverlay data={overlay} />
 
       {glLost && (
         <div
