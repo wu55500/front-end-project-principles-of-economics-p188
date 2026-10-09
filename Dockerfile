@@ -18,6 +18,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 # Standalone deployment: SSR must not inject the grok.com platform script.
 ENV VITE_GROK_EXTENSIONS=0
-COPY --from=build /app ./
+# Run as an unprivileged user (defense in depth; port 8080 needs no capabilities).
+RUN addgroup -S nodeapp && adduser -S -G nodeapp nodeapp \
+    && chown -R nodeapp:nodeapp /app
+COPY --from=build --chown=nodeapp:nodeapp /app ./
+USER nodeapp
 EXPOSE 8080
 CMD ["npm", "run", "preview"]
