@@ -16,6 +16,9 @@ import { WelfareBoard } from "@/components/welfare-board";
 import { Button } from "@/components/ui/button";
 import { useViz } from "@/store/viz";
 
+// ICP 备案号：备案通过后填入（形如「粤ICP备xxxxxx号」），会自动显示在页脚并链接工信部。
+const ICP_NO = "";
+
 export const Route = createFileRoute("/")({ component: Home });
 
 function Home() {
@@ -42,6 +45,18 @@ function Home() {
           <span>不公平竞争论 · Isoland × Neighborland</span>
           <span className="hidden sm:inline">·</span>
           <span>曼昆《经济学原理》第 9 章 · 按 ? 查看快捷键</span>
+        </div>
+        <div className="mx-auto mt-2 max-w-6xl px-4 text-xs text-dim sm:px-6">
+          {ICP_NO ? (
+            <a
+              href="https://beian.miit.gov.cn/"
+              target="_blank"
+              rel="noreferrer"
+              className="transition-colors hover:text-muted"
+            >
+              {ICP_NO}
+            </a>
+          ) : null}
         </div>
       </footer>
       <Toaster
