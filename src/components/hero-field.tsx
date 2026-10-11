@@ -2,7 +2,15 @@ import { useEffect, useRef } from "react";
 import { fitCanvas } from "@/lib/canvas";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 
-type Pt = { x: number; y: number; vx: number; vy: number; r: number; ph: number; c: string };
+type Pt = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  r: number;
+  ph: number;
+  c: string;
+};
 
 export function HeroField() {
   const ref = useRef<HTMLCanvasElement>(null);

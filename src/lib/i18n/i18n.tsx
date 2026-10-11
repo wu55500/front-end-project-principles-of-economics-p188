@@ -4,7 +4,14 @@
  * app is Chinese-authored, so English covers navigation/chrome/key concepts
  * while dense teaching prose can remain Chinese — translations are incremental.
  */
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 export type Lang = "zh" | "en";
 
@@ -61,7 +68,8 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (typeof document !== "undefined") document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+    if (typeof document !== "undefined")
+      document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
     localStorage.setItem("p18n.lang", lang);
   }, [lang]);
 
@@ -72,6 +80,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook intentionally co-located with its provider context
 export function useI18n(): I18nCtx {
   const ctx = useContext(Ctx);
   if (!ctx) throw new Error("useI18n must be used inside I18nProvider");

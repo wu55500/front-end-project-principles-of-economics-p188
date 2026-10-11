@@ -34,9 +34,9 @@ src/
 
 ### 2.1 运行环境双轨
 
-| 环境 | 数据库 | 驱动 |
-| --- | --- | --- |
-| 生产 | Neon（Postgres） | node-postgres（pg） |
+| 环境 | 数据库                       | 驱动                 |
+| ---- | ---------------------------- | -------------------- |
+| 生产 | Neon（Postgres）             | node-postgres（pg）  |
 | 预览 | PGLite（WASM 内存 Postgres） | @electric-sql/pglite |
 
 两者都由 `src/lib/db.ts` 统一封装为 `Sql` 接口（tagged template + `query()`，直接返回行数组），并对 int8/date 等类型做口径归一。
@@ -65,16 +65,16 @@ src/
 
 ## 4. 图表三套实现对照
 
-| 维度 | Recharts | D3 | Canvas |
-| --- | --- | --- | --- |
-| 渲染方式 | 声明式 SVG | SVG + 比例尺 | 命令式像素 |
-| 代码量 | 最少 | 中 | 中 |
-| 灵活性 | 中（受组件约束） | 最高 | 高 |
-| 性能（大量点） | 一般 | 一般 | 最好 |
-| 动画/过渡 | 内置 | 手动 | 手动 |
-| 无障碍 | 好（SVG 语义） | 好 | 弱（需额外标注） |
-| 上手门槛 | 低 | 高 | 中 |
-| 适用场景 | 常规仪表盘 | 高度定制 | 大数据/粒子 |
+| 维度           | Recharts         | D3           | Canvas           |
+| -------------- | ---------------- | ------------ | ---------------- |
+| 渲染方式       | 声明式 SVG       | SVG + 比例尺 | 命令式像素       |
+| 代码量         | 最少             | 中           | 中               |
+| 灵活性         | 中（受组件约束） | 最高         | 高               |
+| 性能（大量点） | 一般             | 一般         | 最好             |
+| 动画/过渡      | 内置             | 手动         | 手动             |
+| 无障碍         | 好（SVG 语义）   | 好           | 弱（需额外标注） |
+| 上手门槛       | 低               | 高           | 中               |
+| 适用场景       | 常规仪表盘       | 高度定制     | 大数据/粒子      |
 
 ## 5. 多人 P2P
 
@@ -88,38 +88,38 @@ src/
 
 ### 6.1 后端工程能力（对应 Java 后端岗）
 
-| 工程能力 | 本项目实现 | Java 生态对应物 |
-| --- | --- | --- |
-| 分层架构 | routes（控制层）/ lib（服务层）/ db（数据层） | Controller / Service / DAO 分层 |
-| 服务端接口 | server functions + `/api/*` 路由，输入校验 | Spring MVC `@RestController`、DTO 校验 |
-| 数据库建模 | 10+ 张表、约束、索引、`numeric` 精度 | MySQL/PostgreSQL 表设计、索引优化 |
-| 数据库迁移 | 版本化 SQL 迁移（0001/0002…），CI 校验 | Flyway / Liquibase |
-| 关系型数据库 | Postgres（Neon 云 + PGLite 内嵌），统一 `Sql` 接口 | JDBC / MyBatis / JPA |
-| 缓存 | 指标数据 TTL 缓存 | Redis / Caffeine |
-| 容器化 | 多阶段 `Dockerfile`（deps→build→runner） | Docker 镜像构建与部署 |
-| CI/CD | GitHub Actions：install→typecheck→test→build | Jenkins / GitLab CI 流水线 |
-| 可观测性 | Sentry / OpenTelemetry 条件接入、全局错误处理 | 日志/监控/链路追踪 |
-| 质量保障 | 250+ 自动化测试，覆盖边界与空数据 | JUnit / Mockito 测试体系 |
+| 工程能力     | 本项目实现                                         | Java 生态对应物                        |
+| ------------ | -------------------------------------------------- | -------------------------------------- |
+| 分层架构     | routes（控制层）/ lib（服务层）/ db（数据层）      | Controller / Service / DAO 分层        |
+| 服务端接口   | server functions + `/api/*` 路由，输入校验         | Spring MVC `@RestController`、DTO 校验 |
+| 数据库建模   | 10+ 张表、约束、索引、`numeric` 精度               | MySQL/PostgreSQL 表设计、索引优化      |
+| 数据库迁移   | 版本化 SQL 迁移（0001/0002…），CI 校验             | Flyway / Liquibase                     |
+| 关系型数据库 | Postgres（Neon 云 + PGLite 内嵌），统一 `Sql` 接口 | JDBC / MyBatis / JPA                   |
+| 缓存         | 指标数据 TTL 缓存                                  | Redis / Caffeine                       |
+| 容器化       | 多阶段 `Dockerfile`（deps→build→runner）           | Docker 镜像构建与部署                  |
+| CI/CD        | GitHub Actions：install→typecheck→test→build       | Jenkins / GitLab CI 流水线             |
+| 可观测性     | Sentry / OpenTelemetry 条件接入、全局错误处理      | 日志/监控/链路追踪                     |
+| 质量保障     | 250+ 自动化测试，覆盖边界与空数据                  | JUnit / Mockito 测试体系               |
 
 ### 6.2 Agent / AI 应用能力（对应 Agent 开发岗）
 
-| Agent 能力 | 本项目实现 |
-| --- | --- |
-| LLM 接入 | OpenAI 兼容 chat/completions 接口，可对接任意兼容模型 |
-| RAG 检索增强 | 关键词知识库检索 + 上下文拼装 + 规则兜底 |
-| 降级与容错 | 无 API Key 或调用失败时自动回落到规则导师，服务不中断 |
-| 工具化结构 | 检索、推理、回复分层，便于扩展为 Function Calling / 多工具 |
-| 数据闭环 | 真实数据 ETL（世界银行 API）+ 因果推断（DID/OLS/Granger） |
+| Agent 能力   | 本项目实现                                                 |
+| ------------ | ---------------------------------------------------------- |
+| LLM 接入     | OpenAI 兼容 chat/completions 接口，可对接任意兼容模型      |
+| RAG 检索增强 | 关键词知识库检索 + 上下文拼装 + 规则兜底                   |
+| 降级与容错   | 无 API Key 或调用失败时自动回落到规则导师，服务不中断      |
+| 工具化结构   | 检索、推理、回复分层，便于扩展为 Function Calling / 多工具 |
+| 数据闭环     | 真实数据 ETL（世界银行 API）+ 因果推断（DID/OLS/Granger）  |
 
 ### 6.3 其他综合能力
 
-| 能力 | 技术 |
-| --- | --- |
-| 前端 / 全栈 | React 19、TypeScript、Vite、Tailwind、Radix |
-| 3D / 图形 | React Three Fiber、@react-three/drei、three、postprocessing 辉光 |
-| 实时通信 | WebRTC P2P + 数据库信令（无 WebSocket） |
-| 数据可视化 | Recharts、D3、Canvas 2D、R3F 三维地球（合并几何体/实时遥测） |
-| 工程规范 | i18n、SEO/OG、环境变量分环境、架构文档 |
+| 能力        | 技术                                                             |
+| ----------- | ---------------------------------------------------------------- |
+| 前端 / 全栈 | React 19、TypeScript、Vite、Tailwind、Radix                      |
+| 3D / 图形   | React Three Fiber、@react-three/drei、three、postprocessing 辉光 |
+| 实时通信    | WebRTC P2P + 数据库信令（无 WebSocket）                          |
+| 数据可视化  | Recharts、D3、Canvas 2D、R3F 三维地球（合并几何体/实时遥测）     |
+| 工程规范    | i18n、SEO/OG、环境变量分环境、架构文档                           |
 
 > 说明：本项目用于展示通用后端工程与 Agent 应用能力；语言层面的 Java/Spring Boot 能力可由独立 Java 项目补充，两者不冲突。
 

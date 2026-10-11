@@ -52,7 +52,9 @@ export function stagingError({ staged, target, publicDir }) {
  */
 export function handOver(staged, target, { rename = renameSync } = {}) {
   if (!existsSync(staged)) {
-    throw Object.assign(new Error(`staged file is missing: ${staged}`), { code: "ENOENT" });
+    throw Object.assign(new Error(`staged file is missing: ${staged}`), {
+      code: "ENOENT",
+    });
   }
   mkdirSync(dirname(target), { recursive: true });
   try {
@@ -60,8 +62,8 @@ export function handOver(staged, target, { rename = renameSync } = {}) {
   } catch (err) {
     if (err?.code === "EXDEV") {
       throw new Error(
-        `${staged} is on another filesystem than ${target}, so the hand-over cannot be a `
-          + "rename — stage under /workspace/.grok/ instead",
+        `${staged} is on another filesystem than ${target}, so the hand-over cannot be a ` +
+          "rename — stage under /workspace/.grok/ instead",
       );
     }
     throw err;

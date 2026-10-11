@@ -4,7 +4,7 @@
  * visualization state so both screens stay in sync (WebRTC datachannels, no
  * game data touches the server after signaling).
  */
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Users, Copy, Check, LogOut, Radio } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -27,8 +27,7 @@ function readPeerId(): string {
 }
 
 type SyncMsg =
-  | { t: "state"; d: { t?: number; mode?: string; view?: string } }
-  | { t: "ping" };
+  { t: "state"; d: { t?: number; mode?: string; view?: string } } | { t: "ping" };
 
 export function RoomPanel() {
   const [peerId, setPeerId] = useState("");
@@ -149,7 +148,8 @@ export function RoomPanel() {
           <h3 className="font-display text-lg">同桌共学（P2P）</h3>
         </div>
         <p className="mt-2 text-sm leading-relaxed text-muted">
-          创建房间拿到 6 位号码，把号码发给同学；加入后两人拖动滑杆、切换政策，画面实时同步。连接走点对点加密通道，服务器只负责牵线。
+          创建房间拿到 6
+          位号码，把号码发给同学；加入后两人拖动滑杆、切换政策，画面实时同步。连接走点对点加密通道，服务器只负责牵线。
         </p>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
           <Button onClick={create}>
@@ -188,7 +188,11 @@ export function RoomPanel() {
             <p className="font-display text-xl tracking-[0.35em]">{room}</p>
           </div>
           <Button variant="ghost" size="iconSm" onClick={copyCode}>
-            {copied ? <Check className="size-4 text-gain" /> : <Copy className="size-4" />}
+            {copied ? (
+              <Check className="size-4 text-gain" />
+            ) : (
+              <Copy className="size-4" />
+            )}
           </Button>
         </div>
         <Button variant="loss" size="sm" onClick={leave}>

@@ -21,7 +21,9 @@ const COUNTRIES: { code: string; name: string }[] = [
 ];
 
 export function RealDataPanel() {
-  const [catalog, setCatalog] = useState<{ code: string; label: string; unit: string }[]>([]);
+  const [catalog, setCatalog] = useState<{ code: string; label: string; unit: string }[]>(
+    [],
+  );
   const [country, setCountry] = useState("WLD");
   const [code, setCode] = useState("NE.TRD.GNFS.ZS");
   const [series, setSeries] = useState<IndicatorSeries | null>(null);
@@ -176,7 +178,8 @@ function buildSparkline(series: IndicatorSeries | null) {
   const ymin = Math.min(...ys, 0);
   const ymax = Math.max(...ys);
   const sx = (x: number) => pad + ((x - xmin) / Math.max(xmax - xmin, 1)) * (W - pad * 2);
-  const sy = (y: number) => H - pad - ((y - ymin) / Math.max(ymax - ymin, 1e-9)) * (H - pad * 2);
+  const sy = (y: number) =>
+    H - pad - ((y - ymin) / Math.max(ymax - ymin, 1e-9)) * (H - pad * 2);
   const coords = series.points.map((p) => [sx(p.year), sy(p.value ?? 0)] as const);
   const path =
     "M" + coords.map((c) => `${c[0].toFixed(1)},${c[1].toFixed(1)}`).join(" L");

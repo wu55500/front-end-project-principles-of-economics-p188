@@ -20,7 +20,10 @@ export declare function readGrokProjectId(): string;
 export declare function readGrokExtensionsEnabled(): boolean;
 export declare function readXCreator(): string;
 export declare function readXCreatorId(): string;
-export declare function grokXCreatorHeadTags(creator?: string, creatorId?: string): string[];
+export declare function grokXCreatorHeadTags(
+  creator?: string,
+  creatorId?: string,
+): string[];
 export declare function grokExtensionsHeadTags(projectId?: string): string[];
 
 export type OgSite = {

@@ -61,7 +61,8 @@ export function QuizSection() {
                     }
                     className={cn(
                       "min-h-11 rounded-md border px-3 py-2.5 text-left text-sm",
-                      !locked && "border-line hover:border-line-strong hover:bg-surface-2",
+                      !locked &&
+                        "border-line hover:border-line-strong hover:bg-surface-2",
                       locked && isAns && "border-gain/50 bg-gain/12 text-gain",
                       isNo && "border-loss/50 bg-loss/12 text-loss",
                       locked && !isAns && !isNo && "border-line text-dim",
@@ -73,22 +74,34 @@ export function QuizSection() {
               })}
             </div>
             {picked[qi] !== null && (
-              <p className="mt-3 border-t border-line pt-3 text-sm leading-relaxed text-muted">{item.exp}</p>
+              <p className="mt-3 border-t border-line pt-3 text-sm leading-relaxed text-muted">
+                {item.exp}
+              </p>
             )}
           </article>
         ))}
       </div>
 
       {done && (
-        <div className="mt-5 rounded-xl border border-line bg-surface p-6 text-center" role="status">
+        <div
+          className="mt-5 rounded-xl border border-line bg-surface p-6 text-center"
+          role="status"
+        >
           <div className="mx-auto mb-3 grid size-12 place-items-center rounded-full border border-gain/40 bg-gain/10 text-gain">
             <Check className="size-5" />
           </div>
           <h3 className="font-display text-xl font-medium">
-            {score === 3 ? "满分。这页书你拿下了" : score === 2 ? "差一题，回看一下解析" : "建议重读第 01、02 节再来"}
+            {score === 3
+              ? "满分。这页书你拿下了"
+              : score === 2
+                ? "差一题，回看一下解析"
+                : "建议重读第 01、02 节再来"}
           </h3>
           <p className="mt-2 text-sm text-muted">
-            得分 {score} / 3 · {score === 3 ? "从资金流到福利账，整条链路都通了。" : "正确答案已经标出，解析就是第二次讲解。"}
+            得分 {score} / 3 ·{" "}
+            {score === 3
+              ? "从资金流到福利账，整条链路都通了。"
+              : "正确答案已经标出，解析就是第二次讲解。"}
           </p>
           <Button
             variant="outline"

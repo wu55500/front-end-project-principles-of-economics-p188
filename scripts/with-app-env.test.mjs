@@ -33,9 +33,12 @@ test("keeps VITE_-prefixed string entries", () => {
 });
 
 test("drops non-VITE keys, non-string values and malformed documents", () => {
-  assert.deepEqual(parseAppEnv('{"DATABASE_URL":"postgres://x","VITE_N":1,"VITE_OK":"y"}'), {
-    VITE_OK: "y",
-  });
+  assert.deepEqual(
+    parseAppEnv('{"DATABASE_URL":"postgres://x","VITE_N":1,"VITE_OK":"y"}'),
+    {
+      VITE_OK: "y",
+    },
+  );
   assert.deepEqual(parseAppEnv("not json"), {});
   assert.deepEqual(parseAppEnv('["VITE_AUTH_ENABLED"]'), {});
   assert.deepEqual(parseAppEnv("null"), {});

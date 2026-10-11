@@ -32,7 +32,9 @@ interface GrokPwaEvent {
 
 function requestHost(event: GrokPwaEvent): string {
   return (
-    event.req.headers.get("x-forwarded-host") ?? event.req.headers.get("host") ?? event.url.host
+    event.req.headers.get("x-forwarded-host") ??
+    event.req.headers.get("host") ??
+    event.url.host
   );
 }
 

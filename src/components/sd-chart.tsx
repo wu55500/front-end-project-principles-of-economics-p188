@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Download, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { downloadBlob, fitCanvas, roundRect } from "@/lib/canvas";
-import { calc, fmt, fmtSigned } from "@/lib/econ/model";
+import { calc, fmt } from "@/lib/econ/model";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useViz } from "@/store/viz";
 import { cn } from "@/lib/utils";
@@ -28,187 +28,209 @@ export function SdChart() {
   const cvRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const t = useViz((s) => s.t);
-  const setT = useViz((s) => s.setT);
   const setManualT = useViz((s) => s.setManualT);
   const reduced = useReducedMotion();
   const [si, setSi] = useState(3);
   const m = calc(t);
 
-  const draw = useCallback(
-    (ph: { curve: number; p1: number; area: number }) => {
-      const cv = cvRef.current;
-      if (!cv) return;
-      const fitted = fitCanvas(cv);
-      if (!fitted) return;
-      const { ctx, w, h } = fitted;
-      const st = useViz.getState();
-      const mm = calc(st.t);
-      const X = (q: number) => ((X0 + (q / 130) * PW) / LW) * w;
-      const Y = (p: number) => ((Y0 + PH - (p / 125) * PH) / LH) * h;
-      const line = (q1: number, p1: number, q2: number, p2: number, style: string, width = 1.5, dash?: number[]) => {
-        ctx.beginPath();
-        ctx.moveTo(X(q1), Y(p1));
-        ctx.lineTo(X(q2), Y(p2));
-        ctx.strokeStyle = style;
-        ctx.lineWidth = width;
-        ctx.setLineDash(dash ?? []);
-        ctx.stroke();
-        ctx.setLineDash([]);
-      };
-      const poly = (pts: [number, number][], fill: string, alpha: number) => {
-        ctx.globalAlpha = alpha;
-        ctx.beginPath();
-        pts.forEach(([q, p], i) => (i ? ctx.lineTo(X(q), Y(p)) : ctx.moveTo(X(q), Y(p))));
-        ctx.closePath();
-        ctx.fillStyle = fill;
-        ctx.fill();
-        ctx.globalAlpha = 1;
-      };
-      const tag = (text: string, q: number, p: number, col: string, alpha: number) => {
-        ctx.globalAlpha = alpha;
-        ctx.font = "600 12px Source Sans 3, sans-serif";
-        const tw = ctx.measureText(text).width + 16;
-        const x = X(q) - tw / 2;
-        const y = Y(p) - 11;
-        ctx.fillStyle = "rgba(11,12,16,.88)";
-        ctx.strokeStyle = col;
-        roundRect(ctx, x, y, tw, 22, 8);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = "#eceae4";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(text, x + tw / 2, y + 11.5);
-        ctx.globalAlpha = 1;
-      };
-
-      ctx.clearRect(0, 0, w, h);
-      ctx.font = "11px Source Sans 3, sans-serif";
-      ctx.fillStyle = "#6e707a";
+  const draw = useCallback((ph: { curve: number; p1: number; area: number }) => {
+    const cv = cvRef.current;
+    if (!cv) return;
+    const fitted = fitCanvas(cv);
+    if (!fitted) return;
+    const { ctx, w, h } = fitted;
+    const st = useViz.getState();
+    const mm = calc(st.t);
+    const X = (q: number) => ((X0 + (q / 130) * PW) / LW) * w;
+    const Y = (p: number) => ((Y0 + PH - (p / 125) * PH) / LH) * h;
+    const line = (
+      q1: number,
+      p1: number,
+      q2: number,
+      p2: number,
+      style: string,
+      width = 1.5,
+      dash?: number[],
+    ) => {
+      ctx.beginPath();
+      ctx.moveTo(X(q1), Y(p1));
+      ctx.lineTo(X(q2), Y(p2));
+      ctx.strokeStyle = style;
+      ctx.lineWidth = width;
+      ctx.setLineDash(dash ?? []);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    };
+    const poly = (pts: [number, number][], fill: string, alpha: number) => {
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      pts.forEach(([q, p], i) => (i ? ctx.lineTo(X(q), Y(p)) : ctx.moveTo(X(q), Y(p))));
+      ctx.closePath();
+      ctx.fillStyle = fill;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    };
+    const tag = (text: string, q: number, p: number, col: string, alpha: number) => {
+      ctx.globalAlpha = alpha;
+      ctx.font = "600 12px Source Sans 3, sans-serif";
+      const tw = ctx.measureText(text).width + 16;
+      const x = X(q) - tw / 2;
+      const y = Y(p) - 11;
+      ctx.fillStyle = "rgba(11,12,16,.88)";
+      ctx.strokeStyle = col;
+      roundRect(ctx, x, y, tw, 22, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#eceae4";
       ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      for (let q = 0; q <= 120; q += 20) {
-        line(q, 0, q, 125, "rgba(154,155,166,.08)", 1);
-        ctx.fillText(String(q), X(q), Y(0) + 6);
-      }
-      ctx.textAlign = "right";
       ctx.textBaseline = "middle";
-      for (let p = 0; p <= 120; p += 20) {
-        line(0, p, 130, p, "rgba(154,155,166,.08)", 1);
-        ctx.fillText(String(p), X(0) - 8, Y(p));
-      }
-      line(0, 0, 130, 0, "rgba(154,155,166,.4)", 1.5);
-      line(0, 0, 0, 125, "rgba(154,155,166,.4)", 1.5);
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#9a9ba6";
-      ctx.fillText("Q（纺织品）", X(118), Y(0) + 20);
-      ctx.save();
-      ctx.translate(X(0) - 42, Y(66));
-      ctx.rotate(-Math.PI / 2);
-      ctx.fillText("P（元/件）", 0, 0);
-      ctx.restore();
+      ctx.fillText(text, x + tw / 2, y + 11.5);
+      ctx.globalAlpha = 1;
+    };
 
-      if (ph.curve > 0) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(0, 0, w * ph.curve, h);
-        ctx.clip();
-        line(0, 120, 120, 0, "#8eb4c8", 2.5);
-        line(0, 20, 105, 125, "#d17a7a", 2.5);
-        ctx.restore();
-        if (ph.curve > 0.7) {
-          ctx.font = "600 13px Source Sans 3, sans-serif";
-          ctx.fillStyle = "#8eb4c8";
-          ctx.textAlign = "left";
-          ctx.fillText("D: Q = 120 − P", X(74), Y(52) - 14);
-          ctx.fillStyle = "#d17a7a";
-          ctx.fillText("S: Q = P − 20", X(74), Y(88) + 6);
-        }
+    ctx.clearRect(0, 0, w, h);
+    ctx.font = "11px Source Sans 3, sans-serif";
+    ctx.fillStyle = "#6e707a";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    for (let q = 0; q <= 120; q += 20) {
+      line(q, 0, q, 125, "rgba(154,155,166,.08)", 1);
+      ctx.fillText(String(q), X(q), Y(0) + 6);
+    }
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    for (let p = 0; p <= 120; p += 20) {
+      line(0, p, 130, p, "rgba(154,155,166,.08)", 1);
+      ctx.fillText(String(p), X(0) - 8, Y(p));
+    }
+    line(0, 0, 130, 0, "rgba(154,155,166,.4)", 1.5);
+    line(0, 0, 0, 125, "rgba(154,155,166,.4)", 1.5);
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#9a9ba6";
+    ctx.fillText("Q（纺织品）", X(118), Y(0) + 20);
+    ctx.save();
+    ctx.translate(X(0) - 42, Y(66));
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText("P（元/件）", 0, 0);
+    ctx.restore();
+
+    if (ph.curve > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, w * ph.curve, h);
+      ctx.clip();
+      line(0, 120, 120, 0, "#8eb4c8", 2.5);
+      line(0, 20, 105, 125, "#d17a7a", 2.5);
+      ctx.restore();
+      if (ph.curve > 0.7) {
+        ctx.font = "600 13px Source Sans 3, sans-serif";
+        ctx.fillStyle = "#8eb4c8";
+        ctx.textAlign = "left";
+        ctx.fillText("D: Q = 120 − P", X(74), Y(52) - 14);
+        ctx.fillStyle = "#d17a7a";
+        ctx.fillText("S: Q = P − 20", X(74), Y(88) + 6);
       }
-      if (ph.p1 > 0) {
-        ctx.globalAlpha = ph.p1;
-        line(0, mm.p1, 130, mm.p1, "#9a9ba6", 1.5, [6, 5]);
-        ctx.globalAlpha = 1;
-        tag("P₁ = 60（原世界价）", 116, mm.p1, "rgba(154,155,166,.6)", ph.p1);
-      }
-      if (ph.p1 >= 1 && mm.t > 0) {
-        line(0, mm.p2, 130, mm.p2, "#c4b48a", 1.7, [6, 5]);
-        tag(`P₂ = ${mm.p2}（补贴后）`, 116, mm.p2, "rgba(196,180,138,.7)", 1);
-        line(mm.qd1, mm.p1, mm.qd1, 0, "rgba(154,155,166,.3)", 1, [3, 4]);
-        line(mm.qd2, mm.p2, mm.qd2, 0, "rgba(154,155,166,.3)", 1, [3, 4]);
-        line(mm.qs1, mm.p1, mm.qs1, 0, "rgba(154,155,166,.3)", 1, [3, 4]);
-      }
-      if (ph.area > 0 && mm.t > 0) {
-        const a = ph.area;
-        // ① consumer-surplus gain: green (rectangle part + DWL triangle)
-        poly(
-          [
-            [mm.qd1, mm.p1],
-            [mm.qd2, mm.p2],
-            [mm.qd1, mm.p2],
-          ],
-          "rgba(111,191,163,.30)",
-          a,
-        );
-        // ② producer-surplus loss: red
-        poly(
-          [
-            [mm.qs1, mm.p1],
-            [mm.qs1, mm.p2],
-            [mm.qs2, mm.p2],
-          ],
-          "rgba(209,122,122,.30)",
-          a,
-        );
-        // ③ FOREIGN SUBSIDY RECTANGLE — the part Isoland gets for free:
-        //    subsidy t × import quantity, paid by Neighborland taxpayers.
-        poly(
-          [
-            [mm.qs1, mm.p1],
-            [mm.qd1, mm.p1],
-            [mm.qd1, mm.p2],
-            [mm.qs1, mm.p2],
-          ],
-          "rgba(244,197,66,.26)",
-          a,
-        );
-        // edge of the subsidy rectangle
-        ctx.globalAlpha = a;
-        line(mm.qs1, mm.p1, mm.qs1, mm.p2, "rgba(244,197,66,.8)", 1.2, [4, 3]);
-        line(mm.qd1, mm.p1, mm.qd1, mm.p2, "rgba(244,197,66,.8)", 1.2, [4, 3]);
-        ctx.globalAlpha = 1;
-        tag(`外国补贴 ×进口 = ${fmt(mm.t * mm.imports)}`,
-          (mm.qs1 + mm.qd1) / 2, (mm.p1 + mm.p2) / 2 + 9, "rgba(244,197,66,.85)", a);
-        tag(`消费者 +${fmt(mm.cs)}`, (mm.qd1 + mm.qd2) / 2 + 4, (mm.p1 + mm.p2) / 2 - 12, "rgba(111,191,163,.75)", a);
-        tag(`生产者 −${fmt(Math.abs(mm.ps))}`, mm.qs1 / 2 + 2, (mm.p1 + mm.p2) / 2 - 12, "rgba(209,122,122,.75)", a);
-        ctx.globalAlpha = a;
-        ctx.font = "600 14px Source Sans 3, sans-serif";
-        const netTri = mm.t * mm.t; // two efficiency triangles
-        const txt = `Isoland 净福利 +${fmt(netTri)}`;
-        const bw = ctx.measureText(txt).width + 26;
-        const bx = X(66) - bw / 2;
-        const by = Y(112);
-        ctx.fillStyle = "rgba(111,191,163,.16)";
-        ctx.strokeStyle = "#6fbfa3";
-        roundRect(ctx, bx, by, bw, 30, 10);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = "#b7e4d4";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(txt, bx + bw / 2, by + 15.5);
-        ctx.globalAlpha = 1;
-      }
-    },
-    [],
-  );
+    }
+    if (ph.p1 > 0) {
+      ctx.globalAlpha = ph.p1;
+      line(0, mm.p1, 130, mm.p1, "#9a9ba6", 1.5, [6, 5]);
+      ctx.globalAlpha = 1;
+      tag("P₁ = 60（原世界价）", 116, mm.p1, "rgba(154,155,166,.6)", ph.p1);
+    }
+    if (ph.p1 >= 1 && mm.t > 0) {
+      line(0, mm.p2, 130, mm.p2, "#c4b48a", 1.7, [6, 5]);
+      tag(`P₂ = ${mm.p2}（补贴后）`, 116, mm.p2, "rgba(196,180,138,.7)", 1);
+      line(mm.qd1, mm.p1, mm.qd1, 0, "rgba(154,155,166,.3)", 1, [3, 4]);
+      line(mm.qd2, mm.p2, mm.qd2, 0, "rgba(154,155,166,.3)", 1, [3, 4]);
+      line(mm.qs1, mm.p1, mm.qs1, 0, "rgba(154,155,166,.3)", 1, [3, 4]);
+    }
+    if (ph.area > 0 && mm.t > 0) {
+      const a = ph.area;
+      // ① consumer-surplus gain: green (rectangle part + DWL triangle)
+      poly(
+        [
+          [mm.qd1, mm.p1],
+          [mm.qd2, mm.p2],
+          [mm.qd1, mm.p2],
+        ],
+        "rgba(111,191,163,.30)",
+        a,
+      );
+      // ② producer-surplus loss: red
+      poly(
+        [
+          [mm.qs1, mm.p1],
+          [mm.qs1, mm.p2],
+          [mm.qs2, mm.p2],
+        ],
+        "rgba(209,122,122,.30)",
+        a,
+      );
+      // ③ FOREIGN SUBSIDY RECTANGLE — the part Isoland gets for free:
+      //    subsidy t × import quantity, paid by Neighborland taxpayers.
+      poly(
+        [
+          [mm.qs1, mm.p1],
+          [mm.qd1, mm.p1],
+          [mm.qd1, mm.p2],
+          [mm.qs1, mm.p2],
+        ],
+        "rgba(244,197,66,.26)",
+        a,
+      );
+      // edge of the subsidy rectangle
+      ctx.globalAlpha = a;
+      line(mm.qs1, mm.p1, mm.qs1, mm.p2, "rgba(244,197,66,.8)", 1.2, [4, 3]);
+      line(mm.qd1, mm.p1, mm.qd1, mm.p2, "rgba(244,197,66,.8)", 1.2, [4, 3]);
+      ctx.globalAlpha = 1;
+      tag(
+        `外国补贴 ×进口 = ${fmt(mm.t * mm.imports)}`,
+        (mm.qs1 + mm.qd1) / 2,
+        (mm.p1 + mm.p2) / 2 + 9,
+        "rgba(244,197,66,.85)",
+        a,
+      );
+      tag(
+        `消费者 +${fmt(mm.cs)}`,
+        (mm.qd1 + mm.qd2) / 2 + 4,
+        (mm.p1 + mm.p2) / 2 - 12,
+        "rgba(111,191,163,.75)",
+        a,
+      );
+      tag(
+        `生产者 −${fmt(Math.abs(mm.ps))}`,
+        mm.qs1 / 2 + 2,
+        (mm.p1 + mm.p2) / 2 - 12,
+        "rgba(209,122,122,.75)",
+        a,
+      );
+      ctx.globalAlpha = a;
+      ctx.font = "600 14px Source Sans 3, sans-serif";
+      const netTri = mm.t * mm.t; // two efficiency triangles
+      const txt = `Isoland 净福利 +${fmt(netTri)}`;
+      const bw = ctx.measureText(txt).width + 26;
+      const bx = X(66) - bw / 2;
+      const by = Y(112);
+      ctx.fillStyle = "rgba(111,191,163,.16)";
+      ctx.strokeStyle = "#6fbfa3";
+      roundRect(ctx, bx, by, bw, 30, 10);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#b7e4d4";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(txt, bx + bw / 2, by + 15.5);
+      ctx.globalAlpha = 1;
+    }
+  }, []);
 
   const full = useCallback(() => draw({ curve: 1, p1: 1, area: 1 }), [draw]);
 
   const onScroll = useCallback(() => {
     const wrap = wrapRef.current;
     if (!wrap) return;
-    const wide = window.matchMedia("(min-width: 921px)").matches && !useViz.getState().present;
+    const wide =
+      window.matchMedia("(min-width: 921px)").matches && !useViz.getState().present;
     if (!wide || reduced) {
       full();
       setSi(3);
@@ -313,7 +335,12 @@ export function SdChart() {
             <Button variant="ghost" size="iconSm" onClick={replay} aria-label="重播绘制">
               <RotateCcw />
             </Button>
-            <Button variant="ghost" size="iconSm" onClick={exportPng} aria-label="导出 PNG">
+            <Button
+              variant="ghost"
+              size="iconSm"
+              onClick={exportPng}
+              aria-label="导出 PNG"
+            >
               <Download />
             </Button>
           </div>
@@ -328,8 +355,8 @@ export function SdChart() {
               <div className="grid grid-cols-3 gap-2 lg:grid-cols-1">
                 <Stat k="消费者剩余" v={`+${fmt(m.cs)}`} tone="gain" />
                 <Stat k="生产者剩余" v={`−${fmt(Math.abs(m.ps))}`} tone="loss" />
-                <Stat k="IS 净福利（效率三角）" v={`+${fmt(m.t*m.t)}`} tone="is" />
-                <Stat k="外国补贴转移" v={fmt(m.t*m.imports)} tone="gain" />
+                <Stat k="IS 净福利（效率三角）" v={`+${fmt(m.t * m.t)}`} tone="is" />
+                <Stat k="外国补贴转移" v={fmt(m.t * m.imports)} tone="gain" />
               </div>
               <TSlider />
               <p className="text-sm leading-relaxed text-muted">

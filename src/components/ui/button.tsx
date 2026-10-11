@@ -9,8 +9,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-accent text-accent-fg hover:opacity-90",
-        outline:
-          "border border-line-strong bg-transparent text-fg hover:bg-surface-2",
+        outline: "border border-line-strong bg-transparent text-fg hover:bg-surface-2",
         ghost: "text-muted hover:text-fg hover:bg-surface-2",
         gain: "bg-gain/15 text-gain border border-gain/30 hover:bg-gain/25",
         loss: "bg-loss/15 text-loss border border-loss/30 hover:bg-loss/25",
@@ -35,7 +34,5 @@ export function Button({
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & { asChild?: boolean }) {
   const Comp = asChild ? Slot : "button";
-  return (
-    <Comp className={cn(buttonVariants({ variant, size, className }))} {...props} />
-  );
+  return <Comp className={cn(buttonVariants({ variant, size, className }))} {...props} />;
 }

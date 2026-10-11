@@ -25,7 +25,10 @@ try {
 
   // `domcontentloaded`, not `networkidle`: Vite keeps an HMR websocket open, so
   // networkidle never settles and would burn the whole timeout.
-  const resp = await page.goto(url, { waitUntil: "domcontentloaded", timeout: timeoutMs });
+  const resp = await page.goto(url, {
+    waitUntil: "domcontentloaded",
+    timeout: timeoutMs,
+  });
   const status = resp?.status() ?? 0;
   await page.waitForTimeout(1000);
 
@@ -33,7 +36,9 @@ try {
 
   console.log(JSON.stringify({ url, status, screenshot: outPng }, null, 2));
 } catch (err) {
-  console.error(JSON.stringify({ ok: false, url, error: String(err?.message || err) }, null, 2));
+  console.error(
+    JSON.stringify({ ok: false, url, error: String(err?.message || err) }, null, 2),
+  );
   // Set the code rather than process.exit() so the `finally` browser teardown
   // always runs (avoids leaking Chromium across repeated capture calls).
   process.exitCode = 1;

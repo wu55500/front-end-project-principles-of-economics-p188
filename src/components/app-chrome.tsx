@@ -66,7 +66,9 @@ export function AppChrome() {
       } else if (e.key === "r" || e.key === "R") {
         st.replayFlow();
       } else if (e.key >= "1" && e.key <= "5") {
-        document.getElementById(SECTIONS[Number(e.key) - 1].id)?.scrollIntoView({ behavior: "smooth" });
+        document
+          .getElementById(SECTIONS[Number(e.key) - 1].id)
+          ?.scrollIntoView({ behavior: "smooth" });
       } else if (e.key === "Escape") {
         st.togglePresent(false);
         st.toggleKbd(false);
@@ -104,7 +106,9 @@ export function AppChrome() {
         aria-label="章节导航"
         className={cn(
           "fixed inset-x-0 top-0 z-40 border-b transition-[background-color,border-color] duration-200",
-          scrolled ? "border-line bg-bg/92 backdrop-blur-md" : "border-transparent bg-transparent",
+          scrolled
+            ? "border-line bg-bg/92 backdrop-blur-md"
+            : "border-transparent bg-transparent",
         )}
       >
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-1 px-4 sm:h-16 sm:px-6">
@@ -170,13 +174,19 @@ export function AppChrome() {
           role="dialog"
           aria-label="快捷键帮助"
         >
-          <div className="w-full max-w-sm rounded-xl border border-line bg-surface p-5" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="w-full max-w-sm rounded-xl border border-line bg-surface p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="mb-3 flex items-center gap-2 font-display text-lg">
               <HelpCircle className="size-4" /> 快捷键
             </div>
             <ul className="space-y-2">
               {KEYBOARD.map((row) => (
-                <li key={row.label} className="flex items-center justify-between gap-3 text-sm">
+                <li
+                  key={row.label}
+                  className="flex items-center justify-between gap-3 text-sm"
+                >
                   <span className="text-muted">{row.label}</span>
                   <span className="flex gap-1">
                     {row.keys.map((k) => (
@@ -212,7 +222,11 @@ function LabPanel() {
     >
       <div className="mb-4 flex items-center justify-between">
         <h3 className="font-display text-lg font-medium">工程解剖</h3>
-        <button type="button" className="text-sm text-muted" onClick={() => useViz.getState().toggleLab(false)}>
+        <button
+          type="button"
+          className="text-sm text-muted"
+          onClick={() => useViz.getState().toggleLab(false)}
+        >
           关闭
         </button>
       </div>
@@ -222,7 +236,8 @@ function LabPanel() {
       <Row k="状态镜像" v={hash} />
       <H>架构</H>
       <p className="mb-3 text-sm leading-relaxed text-muted">
-        纯函数模型 <code className="font-mono text-xs">calc(t)</code> 是单一数据源，经 Zustand 发布给资金流、供需图、福利账、测验。状态写入 URL hash，刷新可还原。
+        纯函数模型 <code className="font-mono text-xs">calc(t)</code> 是单一数据源，经
+        Zustand 发布给资金流、供需图、福利账、测验。状态写入 URL hash，刷新可还原。
       </p>
       <ul className="space-y-1.5 text-sm text-muted">
         <li>model.ts 纯函数，11 组单测锁定课本口径</li>
@@ -241,8 +256,14 @@ function LabPanel() {
           ["#d17a7a", "loss"],
           ["#0b0c10", "bg"],
         ].map(([hex, name]) => (
-          <span key={name} className="inline-flex items-center gap-1.5 text-xs text-muted">
-            <i className="size-3 rounded-full border border-line" style={{ background: hex }} />
+          <span
+            key={name}
+            className="inline-flex items-center gap-1.5 text-xs text-muted"
+          >
+            <i
+              className="size-3 rounded-full border border-line"
+              style={{ background: hex }}
+            />
             {name}
           </span>
         ))}
@@ -252,13 +273,19 @@ function LabPanel() {
 }
 
 function H({ children }: { children: string }) {
-  return <div className="mt-5 mb-2 text-[11px] tracking-[0.14em] text-dim uppercase">{children}</div>;
+  return (
+    <div className="mt-5 mb-2 text-[11px] tracking-[0.14em] text-dim uppercase">
+      {children}
+    </div>
+  );
 }
 function Row({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex items-start justify-between gap-3 border-b border-line py-2 text-sm">
       <span className="text-dim">{k}</span>
-      <b className="max-w-[55%] text-right font-mono text-xs font-medium break-all">{v}</b>
+      <b className="max-w-[55%] text-right font-mono text-xs font-medium break-all">
+        {v}
+      </b>
     </div>
   );
 }

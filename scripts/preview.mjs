@@ -127,9 +127,19 @@ export async function terminatePids(
 ) {
   const signalled = pids.filter((pid) => isAlive(pid));
   for (const pid of signalled) kill(pid, "SIGTERM");
-  const killed = await waitForExit(signalled, { isAlive, sleep, timeoutMs: graceMs, pollMs });
+  const killed = await waitForExit(signalled, {
+    isAlive,
+    sleep,
+    timeoutMs: graceMs,
+    pollMs,
+  });
   for (const pid of killed) kill(pid, "SIGKILL");
-  const stubborn = await waitForExit(killed, { isAlive, sleep, timeoutMs: graceMs, pollMs });
+  const stubborn = await waitForExit(killed, {
+    isAlive,
+    sleep,
+    timeoutMs: graceMs,
+    pollMs,
+  });
   return { signalled, killed, stubborn };
 }
 
@@ -141,7 +151,10 @@ export async function terminatePids(
 export function stopOutcome({ signalled, stubborn, after }) {
   const held = [...new Set([...stubborn, ...after.pids])];
   if (held.length > 0) {
-    return { ok: false, error: `port ${PREVIEW_PORT} is still held by pid(s) ${held.join(", ")}` };
+    return {
+      ok: false,
+      error: `port ${PREVIEW_PORT} is still held by pid(s) ${held.join(", ")}`,
+    };
   }
   if (after.unattributed) {
     return {
@@ -264,7 +277,11 @@ async function stop(announce = true) {
     pidFilePid: readPidFile(),
     cmdlineOf,
   });
-  const { signalled, stubborn } = await terminatePids(owners, { kill: killPid, isAlive, sleep });
+  const { signalled, stubborn } = await terminatePids(owners, {
+    kill: killPid,
+    isAlive,
+    sleep,
+  });
 
   const outcome = stopOutcome({ signalled, stubborn, after: portOwners() });
   if (!outcome.ok) {

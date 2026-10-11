@@ -34,7 +34,10 @@ test("the flag predicate matches src/lib/auth", () => {
 
 test("reads the value a live dev server resolved", async () => {
   assert.equal(
-    await probeDevAuthEnabled("http://127.0.0.1:8080", appEnvFetch({ VITE_AUTH_ENABLED: "false" })),
+    await probeDevAuthEnabled(
+      "http://127.0.0.1:8080",
+      appEnvFetch({ VITE_AUTH_ENABLED: "false" }),
+    ),
     false,
   );
 });
@@ -80,7 +83,10 @@ test("a server without the endpoint probes as null, not as agreement", async () 
 });
 
 test("only a divergence warns the smoke verdict", () => {
-  const diverged = compareAuthInvariant({ devAuthEnabled: true, buildAuthEnabled: false });
+  const diverged = compareAuthInvariant({
+    devAuthEnabled: true,
+    buildAuthEnabled: false,
+  });
   assert.deepEqual(authInvariantWarnings(diverged), [diverged.message]);
   for (const result of [
     compareAuthInvariant({ devAuthEnabled: false, buildAuthEnabled: false }),
@@ -106,5 +112,8 @@ test("the CLI reports rather than silently passing when run via a symlink", asyn
     "http://127.0.0.1:1",
   ]).catch((err) => err);
   assert.equal(error.code, 2);
-  assert.match(error.stderr, /could not read the dev server's resolved VITE_AUTH_ENABLED/);
+  assert.match(
+    error.stderr,
+    /could not read the dev server's resolved VITE_AUTH_ENABLED/,
+  );
 });

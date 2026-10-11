@@ -4,15 +4,19 @@
  */
 
 export interface EconParams {
-  a: number;   // 需求截距
-  b: number;   // 需求斜率(>0)
-  c: number;   // 供给截距(可为负)
-  d: number;   // 供给斜率(>0)
-  pw: number;  // 世界价
+  a: number; // 需求截距
+  b: number; // 需求斜率(>0)
+  c: number; // 供给截距(可为负)
+  d: number; // 供给斜率(>0)
+  pw: number; // 世界价
 }
 
 export const DEFAULT_PARAMS: EconParams = {
-  a: 120, b: 1, c: -20, d: 1, pw: 60,
+  a: 120,
+  b: 1,
+  c: -20,
+  d: 1,
+  pw: 60,
 };
 
 export function demandQ(p: number, q: EconParams = DEFAULT_PARAMS) {
@@ -31,25 +35,43 @@ export function autarkyPrice(q: EconParams) {
  * 补贴后国内价 P2=Pw-t；用线性供需的三角形面积。
  */
 export interface WelfareCalc {
-  t: number; p1: number; p2: number;
-  qd1: number; qs1: number; qd2: number; qs2: number;
-  imports1: number; imports2: number;
-  cs: number; ps: number; net: number;
+  t: number;
+  p1: number;
+  p2: number;
+  qd1: number;
+  qs1: number;
+  qd2: number;
+  qs2: number;
+  imports1: number;
+  imports2: number;
+  cs: number;
+  ps: number;
+  net: number;
 }
 export function welfareWithParams(tRaw: number, q: EconParams): WelfareCalc {
   const autP = autarkyPrice(q);
   const t = Math.max(0, Math.min(autP - q.pw, tRaw));
   const p2 = q.pw - t;
-  const qd1 = demandQ(q.pw, q), qs1 = supplyQ(q.pw, q);
-  const qd2 = demandQ(p2, q), qs2 = supplyQ(p2, q);
+  const qd1 = demandQ(q.pw, q),
+    qs1 = supplyQ(q.pw, q);
+  const qd2 = demandQ(p2, q),
+    qs2 = supplyQ(p2, q);
   // 消费者剩余增量 = t*(qd1+qd2)/2；生产者剩余增量 = -t*(qs1+qs2)/2
   const cs = (t * (qd1 + qd2)) / 2;
   const ps = -(t * (qs1 + qs2)) / 2;
   return {
-    t, p1: q.pw, p2,
-    qd1, qs1, qd2, qs2,
-    imports1: qd1 - qs1, imports2: qd2 - qs2,
-    cs, ps, net: cs + ps,
+    t,
+    p1: q.pw,
+    p2,
+    qd1,
+    qs1,
+    qd2,
+    qs2,
+    imports1: qd1 - qs1,
+    imports2: qd2 - qs2,
+    cs,
+    ps,
+    net: cs + ps,
   };
 }
 

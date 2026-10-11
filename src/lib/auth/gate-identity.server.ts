@@ -1,9 +1,4 @@
-import {
-  importJWK,
-  jwtVerify,
-  type JWK,
-  type JWTVerifyGetKey,
-} from "jose";
+import { importJWK, jwtVerify, type JWK, type JWTVerifyGetKey } from "jose";
 import { env, isWorkspacePreview } from "../env.server.ts";
 
 export const GATE_IDENTITY_HEADER = "x-grok-identity";
@@ -56,12 +51,10 @@ export function gateKeyResolver(
   jwksFetch: JwksFetch = defaultJwksFetch,
 ): JWTVerifyGetKey {
   return async (protectedHeader) => {
-    const kid =
-      typeof protectedHeader.kid === "string" ? protectedHeader.kid : undefined;
+    const kid = typeof protectedHeader.kid === "string" ? protectedHeader.kid : undefined;
     const findKey = (jwks: GateJwks): JWK | undefined =>
       jwks.keys.find(
-        (k) =>
-          k.kty === "OKP" && k.crv === "Ed25519" && (!kid || k.kid === kid),
+        (k) => k.kty === "OKP" && k.crv === "Ed25519" && (!kid || k.kid === kid),
       );
 
     let entry = jwksCache.get(url);
@@ -137,17 +130,11 @@ export function resolveGateEndpoints(headers: Headers): GateEndpoints | null {
   }
 
   const xf = headers.get("x-forwarded-host")?.split(",")[0]?.trim();
-  const host = (xf || headers.get("host") || "")
-    .split(":")[0]
-    ?.trim()
-    .toLowerCase();
+  const host = (xf || headers.get("host") || "").split(":")[0]?.trim().toLowerCase();
   if (!host) return null;
 
   let issuer: string | null = null;
-  if (
-    host === "app-builder-testing.com" ||
-    host.endsWith(".app-builder-testing.com")
-  ) {
+  if (host === "app-builder-testing.com" || host.endsWith(".app-builder-testing.com")) {
     issuer = "https://gate.app-builder-testing.com";
   } else if (host === "grok.me" || host.endsWith(".grok.me")) {
     issuer = "https://gate.grok.me";
@@ -166,8 +153,7 @@ export function sessionBoundToGateIdentity(
 ): boolean {
   return accounts.some(
     (account) =>
-      account.providerId === gateProviderId &&
-      account.accountId === identitySub,
+      account.providerId === gateProviderId && account.accountId === identitySub,
   );
 }
 
@@ -197,9 +183,7 @@ export type GateUserInfo = {
 export function gateIdentityUserInfo(identity: GateIdentity): GateUserInfo {
   return {
     id: identity.sub,
-    email: (
-      identity.email ?? `${identity.sub}@${FALLBACK_EMAIL_DOMAIN}`
-    ).toLowerCase(),
+    email: (identity.email ?? `${identity.sub}@${FALLBACK_EMAIL_DOMAIN}`).toLowerCase(),
     emailVerified: Boolean(identity.email),
     name: identity.name ?? FALLBACK_NAME,
   };

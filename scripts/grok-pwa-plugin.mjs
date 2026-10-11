@@ -20,7 +20,10 @@ import {
 
 export const GROK_OG_IDENTITY_ID = "virtual:grok-og-identity";
 
-const INSTALL_PAGE_PATH = join(dirname(fileURLToPath(import.meta.url)), "install-page.html");
+const INSTALL_PAGE_PATH = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "install-page.html",
+);
 
 function requestHost(req) {
   const forwarded = req.headers["x-forwarded-host"];
@@ -52,7 +55,10 @@ function serveGrokPwa(middlewares) {
       return;
     }
 
-    if (pathOnly === "/__grok/manifest.webmanifest" || pathOnly === "/__grok/manifest.json") {
+    if (
+      pathOnly === "/__grok/manifest.webmanifest" ||
+      pathOnly === "/__grok/manifest.json"
+    ) {
       const body = Buffer.from(renderWebManifest(requestHost(req)), "utf8");
       res.statusCode = 200;
       res.setHeader("content-type", "application/manifest+json; charset=utf-8");
@@ -62,7 +68,11 @@ function serveGrokPwa(middlewares) {
       return;
     }
 
-    if (isInstallQuery(rawUrl) && isDocumentPath(pathOnly) && acceptsHtml(req.headers.accept)) {
+    if (
+      isInstallQuery(rawUrl) &&
+      isDocumentPath(pathOnly) &&
+      acceptsHtml(req.headers.accept)
+    ) {
       try {
         sendHtml(res, renderInstallPage(requestHost(req), rawUrl));
       } catch (err) {

@@ -44,13 +44,17 @@ export function differenceInDifferences(input: {
   // Without raw data we approximate from sample sizes assuming the cell means
   // were supplied; caller may pass group SD via n only. We expose SE as NaN-safe
   // approximation using n (teaches that SE needs dispersion).
-  const harmonicN = 1 / Math.max(tb.n, 1) + 1 / Math.max(ta.n, 1) +
-    1 / Math.max(cb.n, 1) + 1 / Math.max(ca.n, 1);
+  const harmonicN =
+    1 / Math.max(tb.n, 1) +
+    1 / Math.max(ta.n, 1) +
+    1 / Math.max(cb.n, 1) +
+    1 / Math.max(ca.n, 1);
   // Without within-cell variance we cannot compute an SE; use a placeholder of
   // null so the UI never prints a fake precision.
-  const se = (input as unknown as { sd?: number }).sd != null
-    ? Math.abs((input as unknown as { sd: number }).sd) * Math.sqrt(harmonicN)
-    : Number.NaN;
+  const se =
+    (input as unknown as { sd?: number }).sd != null
+      ? Math.abs((input as unknown as { sd: number }).sd) * Math.sqrt(harmonicN)
+      : Number.NaN;
   const tStat = Number.isNaN(se) ? Number.NaN : effect / se;
   const p = Number.isNaN(tStat) ? Number.NaN : normalTwoSidedP(Math.abs(tStat));
 
@@ -138,7 +142,8 @@ export function grangerCausality(
   const q = lags;
   const dfDenom = n - (2 * lags + 1);
   const f =
-    ((restricted.rss - unrestricted.rss) / q) /
+    (restricted.rss - unrestricted.rss) /
+    q /
     Math.max(unrestricted.rss / Math.max(dfDenom, 1), 1e-12);
   const p = fDistributionP(f, q, dfDenom);
 
@@ -160,7 +165,9 @@ function transpose(m: number[][]): number[][] {
   return m[0].map((_, j) => m.map((row) => row[j]));
 }
 function matMul(a: number[][], b: number[][]): number[][] {
-  return a.map((row) => transpose(b).map((col) => row.reduce((s, v, i) => s + v * col[i], 0)));
+  return a.map((row) =>
+    transpose(b).map((col) => row.reduce((s, v, i) => s + v * col[i], 0)),
+  );
 }
 function matVec(a: number[][], v: number[]): number[] {
   return a.map((row) => row.reduce((s, x, i) => s + x * v[i], 0));
@@ -169,10 +176,14 @@ function matVec(a: number[][], v: number[]): number[] {
 /** Invert via Gauss-Jordan. Returns null if singular. */
 function invert(m: number[][]): number[][] | null {
   const n = m.length;
-  const a = m.map((row, i) => [...row, ...Array.from({ length: n }, (_, j) => (i === j ? 1 : 0))]);
+  const a = m.map((row, i) => [
+    ...row,
+    ...Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)),
+  ]);
   for (let col = 0; col < n; col++) {
     let piv = col;
-    for (let r = col + 1; r < n; r++) if (Math.abs(a[r][col]) > Math.abs(a[piv][col])) piv = r;
+    for (let r = col + 1; r < n; r++)
+      if (Math.abs(a[r][col]) > Math.abs(a[piv][col])) piv = r;
     if (Math.abs(a[piv][col]) < 1e-12) return null;
     [a[col], a[piv]] = [a[piv], a[col]];
     const d = a[col][col];
@@ -193,7 +204,9 @@ export function normalTwoSidedP(z: number): number {
   const t = 1 / (1 + 0.2316419 * z);
   const d = 0.3989423 * Math.exp((-z * z) / 2);
   const p =
-    d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+    d *
+    t *
+    (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
   return Math.min(1, 2 * p);
 }
 
@@ -202,9 +215,9 @@ function betacf(a: number, b: number, x: number): number {
   const MAXIT = 100;
   const EPS = 3e-10;
   const FPMIN = 1e-30;
-  let qab = a + b;
-  let qap = a + 1;
-  let qam = a - 1;
+  const qab = a + b;
+  const qap = a + 1;
+  const qam = a - 1;
   let c = 1;
   let d = 1 - (qab * x) / qap;
   if (Math.abs(d) < FPMIN) d = FPMIN;
@@ -243,16 +256,19 @@ function betai(a: number, b: number, x: number): number {
 }
 
 function lnGamma(z: number): number {
+  /* eslint-disable no-loss-of-precision -- Lanczos coefficients are exact */
   const c = [
     76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155,
     0.1208650973866179e-2, -0.5395239384953e-5,
   ];
-  let x = z;
+  /* eslint-enable no-loss-of-precision */
+  const x = z;
   let y = z;
   let tmp = x + 5.5;
   tmp -= (x + 0.5) * Math.log(tmp);
   let ser = 1.000000000190015;
   for (let j = 0; j < 6; j++) ser += c[j] / ++y;
+  // eslint-disable-next-line no-loss-of-precision
   return -tmp + Math.log((2.5066282746310005 * ser) / x);
 }
 

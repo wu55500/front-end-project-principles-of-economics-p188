@@ -28,8 +28,12 @@ export function CanvasSD() {
     // 网格+坐标
     for (let p = 20; p <= 100; p += 10) {
       ctx.strokeStyle = "rgba(236,234,228,.08)";
-      ctx.beginPath(); ctx.moveTo(X(p), M.t); ctx.lineTo(X(p), M.t + ih); ctx.stroke();
-      ctx.fillStyle = "#9a9ba6"; ctx.fillText(String(p), X(p), M.t + ih + 14);
+      ctx.beginPath();
+      ctx.moveTo(X(p), M.t);
+      ctx.lineTo(X(p), M.t + ih);
+      ctx.stroke();
+      ctx.fillStyle = "#9a9ba6";
+      ctx.fillText(String(p), X(p), M.t + ih + 14);
     }
     // 补贴区间阴影
     if (t > 0) {
@@ -38,10 +42,13 @@ export function CanvasSD() {
     }
     // 供需曲线
     const drawCurve = (fn: (p: number) => number, color: string) => {
-      ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
       for (let p = 20; p <= 100; p += 1) {
         const q = fn(p);
-        p === 20 ? ctx.moveTo(X(p), Y(q)) : ctx.lineTo(X(p), Y(q));
+        if (p === 20) ctx.moveTo(X(p), Y(q));
+        else ctx.lineTo(X(p), Y(q));
       }
       ctx.stroke();
     };
@@ -49,13 +56,20 @@ export function CanvasSD() {
     drawCurve(supplyQ, "#d17a7a");
     // 价格参考线
     const refLine = (p: number, color: string, label: string) => {
-      ctx.setLineDash([4, 4]); ctx.strokeStyle = color;
-      ctx.beginPath(); ctx.moveTo(X(p), M.t); ctx.lineTo(X(p), M.t + ih); ctx.stroke();
-      ctx.setLineDash([]); ctx.fillStyle = color; ctx.fillText(label, X(p), M.t + 8);
+      ctx.setLineDash([4, 4]);
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(X(p), M.t);
+      ctx.lineTo(X(p), M.t + ih);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = color;
+      ctx.fillText(label, X(p), M.t + 8);
     };
     refLine(pw, "#c9b458", "P1");
     if (t > 0) refLine(p2, "#7ec27e", "P2");
-    ctx.fillStyle = "#9a9ba6"; ctx.fillText("价格 P", M.l + iw / 2, h - 6);
+    ctx.fillStyle = "#9a9ba6";
+    ctx.fillText("价格 P", M.l + iw / 2, h - 6);
   }, [t, pw, p2]);
 
   return <canvas ref={ref} className="h-80 w-full" aria-label="供需曲线 Canvas 版" />;

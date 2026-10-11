@@ -36,11 +36,56 @@ const ACTORS: Record<string, Actor> = {
 
 function flows(): Flow[] {
   return [
-    { a: "taxpayer", b: "nlGov", c1: { x: 105, y: 190 }, c2: { x: 105, y: 230 }, stage: 0, col: "#c4b48a", kind: "yen", tariff: "off" },
-    { a: "nlGov", b: "nlFac", c1: { x: 195, y: 345 }, c2: { x: 195, y: 385 }, stage: 1, col: "#c4b48a", kind: "yen", tariff: "off" },
-    { a: "nlFac", b: "isCon", c1: { x: 420, y: 470 }, c2: { x: 700, y: 320 }, stage: 2, col: "#6fbfa3", kind: "box", tariff: "wall" },
-    { a: "isCon", b: "nlFac", c1: { x: 700, y: 480 }, c2: { x: 430, y: 520 }, stage: 3, col: "#8eb4c8", kind: "yen", tariff: "keep" },
-    { a: "isCon", b: "isGov", c1: { x: 1005, y: 230 }, c2: { x: 1005, y: 190 }, stage: 1, col: "#d17a7a", kind: "yen", tariff: "only" },
+    {
+      a: "taxpayer",
+      b: "nlGov",
+      c1: { x: 105, y: 190 },
+      c2: { x: 105, y: 230 },
+      stage: 0,
+      col: "#c4b48a",
+      kind: "yen",
+      tariff: "off",
+    },
+    {
+      a: "nlGov",
+      b: "nlFac",
+      c1: { x: 195, y: 345 },
+      c2: { x: 195, y: 385 },
+      stage: 1,
+      col: "#c4b48a",
+      kind: "yen",
+      tariff: "off",
+    },
+    {
+      a: "nlFac",
+      b: "isCon",
+      c1: { x: 420, y: 470 },
+      c2: { x: 700, y: 320 },
+      stage: 2,
+      col: "#6fbfa3",
+      kind: "box",
+      tariff: "wall",
+    },
+    {
+      a: "isCon",
+      b: "nlFac",
+      c1: { x: 700, y: 480 },
+      c2: { x: 430, y: 520 },
+      stage: 3,
+      col: "#8eb4c8",
+      kind: "yen",
+      tariff: "keep",
+    },
+    {
+      a: "isCon",
+      b: "isGov",
+      c1: { x: 1005, y: 230 },
+      c2: { x: 1005, y: 190 },
+      stage: 1,
+      col: "#d17a7a",
+      kind: "yen",
+      tariff: "only",
+    },
   ];
 }
 
@@ -49,8 +94,10 @@ function bez(f: Flow, k: number) {
   const b = ACTORS[f.b];
   const u = 1 - k;
   return {
-    x: u * u * u * a.x + 3 * u * u * k * f.c1.x + 3 * u * k * k * f.c2.x + k * k * k * b.x,
-    y: u * u * u * a.y + 3 * u * u * k * f.c1.y + 3 * u * k * k * f.c2.y + k * k * k * b.y,
+    x:
+      u * u * u * a.x + 3 * u * u * k * f.c1.x + 3 * u * k * k * f.c2.x + k * k * k * b.x,
+    y:
+      u * u * u * a.y + 3 * u * u * k * f.c1.y + 3 * u * k * k * f.c2.y + k * k * k * b.y,
   };
 }
 
@@ -61,7 +108,13 @@ function wallHitK(f: Flow) {
   return 1;
 }
 
-function icon(ctx: CanvasRenderingContext2D, kind: string, x: number, y: number, col: string) {
+function icon(
+  ctx: CanvasRenderingContext2D,
+  kind: string,
+  x: number,
+  y: number,
+  col: string,
+) {
   ctx.save();
   ctx.translate(x, y);
   ctx.strokeStyle = col;
@@ -161,7 +214,12 @@ export function FlowSim() {
 
       if (!isPaused) {
         fs.forEach((f, i) => {
-          const on = f.tariff === "only" ? m === "tariff" : f.tariff === "off" ? m !== "tariff" : true;
+          const on =
+            f.tariff === "only"
+              ? m === "tariff"
+              : f.tariff === "off"
+                ? m !== "tariff"
+                : true;
           if (!on || el < STAGE[f.stage]) return;
           if (el - lastSpawn[i] > 0.55 || el < lastSpawn[i]) {
             lastSpawn[i] = el;
@@ -254,7 +312,8 @@ export function FlowSim() {
         const yy = sy(140 + r * 120);
         for (let x = sx(478); x <= sx(622); x += 6) {
           const y = yy + Math.sin(x / 26 + now / 700 + r) * 5;
-          x === sx(478) ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+          if (x === sx(478)) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
         }
         ctx.stroke();
       }
@@ -268,7 +327,8 @@ export function FlowSim() {
         ctx.rect(wx - 12, sy(60), 24, wallH);
         ctx.clip();
         for (let yy = sy(60); yy < sy(492); yy += 15) {
-          ctx.fillStyle = (yy / 15) % 2 < 1 ? "rgba(209,122,122,.5)" : "rgba(209,122,122,.28)";
+          ctx.fillStyle =
+            (yy / 15) % 2 < 1 ? "rgba(209,122,122,.5)" : "rgba(209,122,122,.28)";
           ctx.fillRect(wx - 10, yy, 20, 12);
         }
         ctx.restore();
@@ -278,11 +338,23 @@ export function FlowSim() {
       }
 
       fs.forEach((f) => {
-        const on = f.tariff === "only" ? m === "tariff" : f.tariff === "off" ? m !== "tariff" : true;
+        const on =
+          f.tariff === "only"
+            ? m === "tariff"
+            : f.tariff === "off"
+              ? m !== "tariff"
+              : true;
         const started = el >= STAGE[f.stage];
         ctx.beginPath();
         ctx.moveTo(sx(ACTORS[f.a].x), sy(ACTORS[f.a].y));
-        ctx.bezierCurveTo(sx(f.c1.x), sy(f.c1.y), sx(f.c2.x), sy(f.c2.y), sx(ACTORS[f.b].x), sy(ACTORS[f.b].y));
+        ctx.bezierCurveTo(
+          sx(f.c1.x),
+          sy(f.c1.y),
+          sx(f.c2.x),
+          sy(f.c2.y),
+          sx(ACTORS[f.b].x),
+          sy(ACTORS[f.b].y),
+        );
         ctx.setLineDash([7, 7]);
         ctx.lineDashOffset = -el * 18;
         ctx.strokeStyle = on && started ? f.col : "rgba(154,155,166,.28)";
@@ -294,7 +366,8 @@ export function FlowSim() {
       });
 
       for (const c of coins) {
-        const kk = c.f.tariff === "wall" && m === "tariff" ? Math.min(c.k, wallHitK(c.f)) : c.k;
+        const kk =
+          c.f.tariff === "wall" && m === "tariff" ? Math.min(c.k, wallHitK(c.f)) : c.k;
         if (kk < 0 || kk > 1) continue;
         const p = bez(c.f, kk);
         const sc = kk < 0.08 ? kk / 0.08 : 1;
@@ -375,7 +448,11 @@ export function FlowSim() {
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-surface">
       <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-2.5 sm:px-4">
-        <div className="inline-flex rounded-md border border-line bg-bg p-1" role="group" aria-label="情景切换">
+        <div
+          className="inline-flex rounded-md border border-line bg-bg p-1"
+          role="group"
+          aria-label="情景切换"
+        >
           <button
             type="button"
             aria-pressed={mode === "accept"}
@@ -400,7 +477,12 @@ export function FlowSim() {
           </button>
         </div>
         <span className="flex-1" />
-        <Button variant="ghost" size="iconSm" onClick={() => togglePause()} aria-label={paused ? "继续" : "暂停"}>
+        <Button
+          variant="ghost"
+          size="iconSm"
+          onClick={() => togglePause()}
+          aria-label={paused ? "继续" : "暂停"}
+        >
           {paused ? <Play /> : <Pause />}
         </Button>
         <Button variant="ghost" size="iconSm" onClick={replay} aria-label="重播">
@@ -417,31 +499,35 @@ export function FlowSim() {
         aria-label="资金流向模拟：NL 纳税人缴税，政府补贴纺织厂，纺织品低价出口到 Isoland"
       />
       <ol className="grid grid-cols-2 gap-2 border-t border-line px-3 py-3 sm:grid-cols-4 sm:px-5">
-        {["NL 纳税人出钱", "NL 政府补贴工厂", "低价出口到 IS", "IS 消费者付款"].map((label, i) => (
-          <li
-            key={label}
-            className={cn(
-              "flex items-center gap-2 text-sm",
-              i < step ? "text-gain" : i === step ? "text-fg" : "text-dim",
-            )}
-          >
-            <span
+        {["NL 纳税人出钱", "NL 政府补贴工厂", "低价出口到 IS", "IS 消费者付款"].map(
+          (label, i) => (
+            <li
+              key={label}
               className={cn(
-                "grid size-6 place-items-center rounded-full border text-[11px] font-medium",
-                i < step
-                  ? "border-gain/50 bg-gain/15"
-                  : i === step
-                    ? "border-accent/50"
-                    : "border-line",
+                "flex items-center gap-2 text-sm",
+                i < step ? "text-gain" : i === step ? "text-fg" : "text-dim",
               )}
             >
-              {i + 1}
-            </span>
-            {label}
-          </li>
-        ))}
+              <span
+                className={cn(
+                  "grid size-6 place-items-center rounded-full border text-[11px] font-medium",
+                  i < step
+                    ? "border-gain/50 bg-gain/15"
+                    : i === step
+                      ? "border-accent/50"
+                      : "border-line",
+                )}
+              >
+                {i + 1}
+              </span>
+              {label}
+            </li>
+          ),
+        )}
       </ol>
-      <p className="border-t border-line px-4 py-3 text-sm leading-relaxed text-muted">{FLOW_CAPTIONS[mode]}</p>
+      <p className="border-t border-line px-4 py-3 text-sm leading-relaxed text-muted">
+        {FLOW_CAPTIONS[mode]}
+      </p>
     </div>
   );
 }

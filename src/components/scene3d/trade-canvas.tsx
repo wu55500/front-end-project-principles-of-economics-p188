@@ -176,10 +176,7 @@ function Flow({
 
 function CurveLine({ def, dimmed }: { def: CurveDef; dimmed?: boolean }) {
   const pts = useMemo(
-    () =>
-      def.curve
-        .getPoints(60)
-        .map((v) => [v.x, v.y, v.z] as [number, number, number]),
+    () => def.curve.getPoints(60).map((v) => [v.x, v.y, v.z] as [number, number, number]),
     [def],
   );
   return (
@@ -229,7 +226,11 @@ function Building({ kind, color }: { kind: Anchor["kind"]; color: string }) {
             rotation={[0, 0, i % 2 ? 0.25 : -0.25]}
           >
             <boxGeometry args={[1, 0.5, 2]} />
-            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.2} />
+            <meshStandardMaterial
+              color={color}
+              emissive={color}
+              emissiveIntensity={0.2}
+            />
           </mesh>
         ))}
         <mesh castShadow position={[1.1, 1.5, -0.7]}>
@@ -311,7 +312,14 @@ function ActorNode({ a }: { a: Anchor }) {
             <span style={{ color, marginRight: 5 }}>●</span>
             {a.label}
           </div>
-          <div style={{ fontSize: 10.5, color: "#b7c2cd", marginTop: 2, textShadow: "0 1px 4px #000" }}>
+          <div
+            style={{
+              fontSize: 10.5,
+              color: "#b7c2cd",
+              marginTop: 2,
+              textShadow: "0 1px 4px #000",
+            }}
+          >
             {a.sub}
           </div>
         </div>
@@ -529,7 +537,14 @@ function Scene({ mobile }: { mobile: boolean }) {
       <CurveLine def={byId("isBuy")} />
       {mode === "tariff" && <CurveLine def={byId("tariff")} />}
 
-      <Flow def={byId("cargo")} count={cargoN} kind="cargo" speed={0.07} boost={boost} holdAtWall />
+      <Flow
+        def={byId("cargo")}
+        count={cargoN}
+        kind="cargo"
+        speed={0.07}
+        boost={boost}
+        holdAtWall
+      />
       <Flow def={byId("payment")} count={payN} kind="coin" speed={0.06} boost={boost} />
       <Flow def={byId("nlSubsidy")} count={5} kind="money" speed={0.09} boost={boost} />
       <Flow def={byId("nlTax")} count={4} kind="money" speed={0.08} boost={boost} />
@@ -668,7 +683,12 @@ function Hud({ collapsed }: { collapsed: boolean }) {
           <Stat label="纺织品出口" value={`${exportBox}`} unit="万箱/年" dot={C.cargo} />
           <Stat label="进口付款" value={`${payment}`} unit="亿美元/年" dot={C.money} />
           {mode === "tariff" && (
-            <Stat label="关税收入" value={`${tariffRev}`} unit="亿美元/年" dot={C.tariff} />
+            <Stat
+              label="关税收入"
+              value={`${tariffRev}`}
+              unit="亿美元/年"
+              dot={C.tariff}
+            />
           )}
           <Stat label="补贴支出" value={`${t}`} unit="亿美元/年" dot={C.gov} />
         </div>
@@ -836,7 +856,7 @@ export default function TradeCanvas({ subsidy: _subsidy }: { subsidy?: number })
           3D 图形被手机系统暂时回收以节省资源，请点浏览器刷新重新加载。
         </div>
       )}
-            {ready && <Hud collapsed={collapsed} />}
+      {ready && <Hud collapsed={collapsed} />}
       {ready && (
         <button
           type="button"

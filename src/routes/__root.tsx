@@ -4,6 +4,7 @@ import { registerGlobalErrorHandler } from "@/lib/observability/monitor";
 import { I18nProvider } from "@/lib/i18n/i18n";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
+import { RouteErrorComponent, RouteNotFoundComponent } from "@/components/route-error";
 import appCss from "../styles.css?url";
 
 const APP_NAME = "不公平竞争论 · 互动图解";
@@ -44,6 +45,8 @@ export const Route = createRootRoute({
       { rel: "apple-touch-icon", href: "/__grok/icon-180.png" },
     ],
   }),
+  errorComponent: RouteErrorComponent,
+  notFoundComponent: RouteNotFoundComponent,
   component: () => (
     <html lang="zh-CN" className="antialiased" suppressHydrationWarning>
       <head>

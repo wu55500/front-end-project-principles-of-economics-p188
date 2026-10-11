@@ -90,7 +90,9 @@ export function defaultIceServers(): RTCIceServer[] {
   // gathering, so either one being unreachable costs nothing.
   return [
     {
-      urls: urls?.length ? urls : ["stun:stun.l.google.com:19302", "stun:stun.cloudflare.com:3478"],
+      urls: urls?.length
+        ? urls
+        : ["stun:stun.l.google.com:19302", "stun:stun.cloudflare.com:3478"],
     },
   ];
 }
@@ -444,7 +446,11 @@ export class P2PRoom {
     return next;
   }
 
-  private async postSignal(to: string, kind: SignalKind, payload: unknown): Promise<void> {
+  private async postSignal(
+    to: string,
+    kind: SignalKind,
+    payload: unknown,
+  ): Promise<void> {
     for (let attempt = 0; ; attempt++) {
       if (this.closed) return;
       try {
@@ -481,7 +487,8 @@ export class P2PRoom {
     for (const slot of this.peers.values()) {
       if (slot.state?.readyState !== "open") continue;
       const stale =
-        slot.pingSentAt !== undefined && performance.now() - slot.pingSentAt > 2 * PING_INTERVAL_MS;
+        slot.pingSentAt !== undefined &&
+        performance.now() - slot.pingSentAt > 2 * PING_INTERVAL_MS;
       if (slot.pingSentAt === undefined || stale) {
         // A lost pong must not freeze rttMs forever: expire and re-ping.
         slot.pingSentAt = performance.now();

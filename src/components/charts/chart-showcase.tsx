@@ -12,16 +12,56 @@ const TABS: { id: Kind; label: string; desc: string }[] = [
 ];
 
 const COMPARE: { dim: string; recharts: string; d3: string; canvas: string }[] = [
-  { dim: "渲染方式", recharts: "SVG（内部封装）", d3: "SVG / Canvas 任选", canvas: "Canvas 2D 位图" },
-  { dim: "代码量", recharts: "最少，声明式", d3: "最多，手写比例尺", canvas: "中等，命令式绘制" },
-  { dim: "灵活/定制", recharts: "中，受组件约束", d3: "极高，完全可控", canvas: "高，但需自理一切" },
-  { dim: "大数据性能", recharts: "万点以下良好", d3: "SVG节点多时吃力", canvas: "最佳，适合海量点" },
-  { dim: "动画", recharts: "内置过渡，简单", d3: "transition 精细控制", canvas: "RAF 全自定义最顺" },
-  { dim: "无障碍/SEO", recharts: "好（SVG语义）", d3: "好（SVG可加语义）", canvas: "差，需额外替代文本" },
-  { dim: "交互/tooltip", recharts: "开箱即用", d3: "自己实现，最灵活", canvas: "需手动命中检测" },
+  {
+    dim: "渲染方式",
+    recharts: "SVG（内部封装）",
+    d3: "SVG / Canvas 任选",
+    canvas: "Canvas 2D 位图",
+  },
+  {
+    dim: "代码量",
+    recharts: "最少，声明式",
+    d3: "最多，手写比例尺",
+    canvas: "中等，命令式绘制",
+  },
+  {
+    dim: "灵活/定制",
+    recharts: "中，受组件约束",
+    d3: "极高，完全可控",
+    canvas: "高，但需自理一切",
+  },
+  {
+    dim: "大数据性能",
+    recharts: "万点以下良好",
+    d3: "SVG节点多时吃力",
+    canvas: "最佳，适合海量点",
+  },
+  {
+    dim: "动画",
+    recharts: "内置过渡，简单",
+    d3: "transition 精细控制",
+    canvas: "RAF 全自定义最顺",
+  },
+  {
+    dim: "无障碍/SEO",
+    recharts: "好（SVG语义）",
+    d3: "好（SVG可加语义）",
+    canvas: "差，需额外替代文本",
+  },
+  {
+    dim: "交互/tooltip",
+    recharts: "开箱即用",
+    d3: "自己实现，最灵活",
+    canvas: "需手动命中检测",
+  },
   { dim: "DPR高清", recharts: "自动", d3: "自动（矢量）", canvas: "需手动适配" },
   { dim: "上手门槛", recharts: "低", d3: "高", canvas: "中高" },
-  { dim: "适用场景", recharts: "常规业务图表、快交付", d3: "教科书级定制/复杂交互", canvas: "粒子/高频/超大数点" },
+  {
+    dim: "适用场景",
+    recharts: "常规业务图表、快交付",
+    d3: "教科书级定制/复杂交互",
+    canvas: "粒子/高频/超大数点",
+  },
 ];
 
 export function ChartShowcase() {

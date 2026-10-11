@@ -110,7 +110,10 @@ export async function runSignOut({
     return;
   }
 
-  const outcome = await settleWithin(requestSignOut, timeoutMs ?? signOutTimeoutMs(livePreview));
+  const outcome = await settleWithin(
+    requestSignOut,
+    timeoutMs ?? signOutTimeoutMs(livePreview),
+  );
   if (outcome !== "ok") {
     throw new Error(
       outcome === "timeout"

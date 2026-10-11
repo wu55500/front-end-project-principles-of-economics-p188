@@ -13,16 +13,9 @@
  * devices get a reduced pipeline so the WebGL context is never lost.
  */
 import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
-import { Html, OrbitControls, Stars, Billboard, Line } from "@react-three/drei";
+import { OrbitControls, Stars, Billboard, Line } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
-import {
-  Suspense,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
 import { feature } from "topojson-client";
 import earcut from "earcut";
@@ -77,10 +70,10 @@ const HICOLORS: Record<number, string> = {
 
 function Countries() {
   const { landGeo, hiGeos, borderSegs } = useMemo(() => {
-    const fc = feature(WORLD as never, WORLD.objects.countries) as unknown as FeatureCollection<
-      Geometry,
-      Record<string, unknown>
-    >;
+    const fc = feature(
+      WORLD as never,
+      WORLD.objects.countries,
+    ) as unknown as FeatureCollection<Geometry, Record<string, unknown>>;
     const land: number[] = [];
     const hiByCountry: Record<number, number[]> = {};
     const segs: number[] = [];
@@ -102,7 +95,8 @@ function Countries() {
       }
       const inds = earcut(flat, holeIdx, 2);
       for (const i of inds) {
-        const lo = flat[i * 2], la = flat[i * 2 + 1];
+        const lo = flat[i * 2],
+          la = flat[i * 2 + 1];
         const p = ll(lo, la, R * 1.003);
         target.push(p.x, p.y, p.z);
       }
@@ -110,7 +104,10 @@ function Countries() {
 
     const addBorders = (coords: Position[]) => {
       for (let i = 0; i < coords.length - 1; i++) {
-        const dens = Math.max(1, Math.ceil(Math.abs(coords[i + 1][0] - coords[i][0]) / 3));
+        const dens = Math.max(
+          1,
+          Math.ceil(Math.abs(coords[i + 1][0] - coords[i][0]) / 3),
+        );
         for (let k = 0; k < dens; k++) {
           const a = ll(
             coords[i][0] + ((coords[i + 1][0] - coords[i][0]) * k) / dens,
@@ -134,12 +131,6 @@ function Countries() {
       const target = isHi ? hiByCountry[id] : land;
       const g = f.geometry;
       if (!g) return;
-      const polys =
-        g.type === "Polygon"
-          ? g.coordinates
-          : g.type === "MultiPolygon"
-            ? g.coordinates
-            : [];
       if (g.type === "Polygon") {
         fillPolygon(g.coordinates, target);
         g.coordinates.forEach((r) => addBorders(r));
@@ -159,7 +150,9 @@ function Countries() {
     };
     return {
       landGeo: mk(land),
-      hiGeos: Object.fromEntries(Object.entries(hiByCountry).map(([id, arr]) => [id, mk(arr)])),
+      hiGeos: Object.fromEntries(
+        Object.entries(hiByCountry).map(([id, arr]) => [id, mk(arr)]),
+      ),
       borderSegs: new Float32Array(segs),
     };
   }, []);
@@ -167,7 +160,12 @@ function Countries() {
   return (
     <group>
       <mesh geometry={landGeo}>
-        <meshStandardMaterial color={COLORS.land} roughness={0.92} metalness={0.06} flatShading />
+        <meshStandardMaterial
+          color={COLORS.land}
+          roughness={0.92}
+          metalness={0.06}
+          flatShading
+        />
       </mesh>
       {Object.entries(hiGeos).map(([id, geo]) => (
         <mesh key={id} geometry={geo as THREE.BufferGeometry}>
@@ -364,8 +362,15 @@ function Route({
           ref={beacon}
           position={mid}
           onClick={click}
-          onPointerOver={(e) => { e.stopPropagation(); setHover(true); document.body.style.cursor="pointer"; }}
-          onPointerOut={() => { setHover(false); document.body.style.cursor="auto"; }}
+          onPointerOver={(e) => {
+            e.stopPropagation();
+            setHover(true);
+            document.body.style.cursor = "pointer";
+          }}
+          onPointerOut={() => {
+            setHover(false);
+            document.body.style.cursor = "auto";
+          }}
         >
           <sphereGeometry args={[0.085, 16, 16]} />
           <meshStandardMaterial
@@ -399,8 +404,22 @@ type CityDef = {
 
 const CITIES: CityDef[] = [
   { id: "cn", lon: 121.5, lat: 31.2, px: [40, -34], name: "上海", sub: "中国 · 起运" },
-  { id: "mx", lon: -104.3, lat: 19.05, px: [-40, 46], name: "曼萨尼约", sub: "墨西哥 · 中转换单" },
-  { id: "us", lon: -118.24, lat: 34.05, px: [-22, -34], name: "洛杉矶", sub: "美国 · 目的地" },
+  {
+    id: "mx",
+    lon: -104.3,
+    lat: 19.05,
+    px: [-40, 46],
+    name: "曼萨尼约",
+    sub: "墨西哥 · 中转换单",
+  },
+  {
+    id: "us",
+    lon: -118.24,
+    lat: 34.05,
+    px: [-22, -34],
+    name: "洛杉矶",
+    sub: "美国 · 目的地",
+  },
 ];
 
 /* marker sphere sitting on the globe */
@@ -411,7 +430,11 @@ function CityMarker({ lon, lat }: { lon: number; lat: number }) {
       <Billboard>
         <mesh position={[0, 0.05, 0]}>
           <sphereGeometry args={[0.032, 12, 12]} />
-          <meshStandardMaterial color="#dff2ff" emissive="#7fd4ff" emissiveIntensity={2.6} />
+          <meshStandardMaterial
+            color="#dff2ff"
+            emissive="#7fd4ff"
+            emissiveIntensity={2.6}
+          />
         </mesh>
       </Billboard>
     </group>
@@ -455,7 +478,11 @@ function OverlayTracker({
   const k = useRef(0);
   const prev = useRef<Record<string, number>>({});
 
-  const project = (p: THREE.Vector3, camera: THREE.Camera, size: { width: number; height: number }) => {
+  const project = (
+    p: THREE.Vector3,
+    camera: THREE.Camera,
+    size: { width: number; height: number },
+  ) => {
     v.copy(p).project(camera);
     return {
       x: (v.x * 0.5 + 0.5) * size.width,
@@ -464,8 +491,12 @@ function OverlayTracker({
   };
   const isFront = (p: THREE.Vector3, cp: THREE.Vector3) => {
     const pl = Math.hypot(p.x, p.y, p.z) || 1;
-    const nx = p.x / pl, ny = p.y / pl, nz = p.z / pl;
-    const dx = cp.x - p.x, dy = cp.y - p.y, dz = cp.z - p.z;
+    const nx = p.x / pl,
+      ny = p.y / pl,
+      nz = p.z / pl;
+    const dx = cp.x - p.x,
+      dy = cp.y - p.y,
+      dz = cp.z - p.z;
     const dl = Math.hypot(dx, dy, dz) || 1;
     return (nx * dx + ny * dy + nz * dz) / dl > 0.02;
   };
@@ -508,7 +539,10 @@ function Dome({ lon, lat, on }: { lon: number; lat: number; on: boolean }) {
   const ref = useRef<THREE.Mesh>(null);
   const pos = useMemo(() => ll(lon, lat, R * 1.02), [lon, lat]);
   useFrame(({ clock }) => {
-    if (ref.current) ref.current.scale.setScalar(on ? 1 + Math.sin(clock.elapsedTime * 3) * 0.1 : 0.0001);
+    if (ref.current)
+      ref.current.scale.setScalar(
+        on ? 1 + Math.sin(clock.elapsedTime * 3) * 0.1 : 0.0001,
+      );
   });
   return (
     <group position={pos}>
@@ -655,7 +689,12 @@ function Scene({
 
       {!mobile && (
         <EffectComposer>
-          <Bloom intensity={0.6} luminanceThreshold={0.25} luminanceSmoothing={0.35} mipmapBlur />
+          <Bloom
+            intensity={0.6}
+            luminanceThreshold={0.25}
+            luminanceSmoothing={0.35}
+            mipmapBlur
+          />
         </EffectComposer>
       )}
     </>
@@ -677,7 +716,7 @@ function metrics(id: string, t: number, war: boolean) {
   const jitter = 1 + (t - 20) * 0.004;
   if (id === "export")
     return {
-      flow: 2304 * jitter,                 // China exports, $B/yr
+      flow: 2304 * jitter, // China exports, $B/yr
       value: 2304 * jitter,
       rate: war ? 6 : 2.7,
       share: war ? 3 : 15,
@@ -686,9 +725,9 @@ function metrics(id: string, t: number, war: boolean) {
     };
   if (id === "transit")
     return {
-      flow: 340 * jitter,                  // Mexico->USA, $B/yr (~80% of 425)
+      flow: 340 * jitter, // Mexico->USA, $B/yr (~80% of 425)
       value: 340 * jitter,
-      rate: 0,                             // USMCA duty-free
+      rate: 0, // USMCA duty-free
       share: war ? 16 : 16,
       status: war ? "中转换单 · USMCA 零关税" : "近岸出口 · USMCA",
       tone: COLORS.transit,
@@ -727,7 +766,9 @@ function Row({
       <span style={{ fontSize: 12, color: "#9aa6b2" }}>{label}</span>
       <span style={{ fontSize: 19, fontWeight: 800, color: tone ?? "#f2f0e9" }}>
         {value}
-        <span style={{ fontSize: 10, fontWeight: 500, color: "#7d8a97", marginLeft: 4 }}>{unit}</span>
+        <span style={{ fontSize: 10, fontWeight: 500, color: "#7d8a97", marginLeft: 4 }}>
+          {unit}
+        </span>
       </span>
     </div>
   );
@@ -756,20 +797,23 @@ function Telemetry({
     setHist((h) => [...h.slice(-33), live]);
   }, [tick]); // eslint-disable-line react-hooks/exhaustive-deps
   const j1 = 1 + Math.sin(tick * 1.6) * 0.02;
-  const j2 = 1 + Math.cos(tick * 1.3) * 0.018;
 
   // build sparkline path from history
   const spark = (() => {
     if (hist.length < 2) return { path: "", area: "" };
-    const W = 232, H = 46;
-    const lo = Math.min(...hist), hi = Math.max(...hist);
+    const W = 232,
+      H = 46;
+    const lo = Math.min(...hist),
+      hi = Math.max(...hist);
     const span = hi - lo || 1;
     const pts = hist.map((v, i) => {
       const x = (i / (hist.length - 1)) * W;
       const y = H - ((v - lo) / span) * (H - 6) - 3;
       return [x, y];
     });
-    const path = pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
+    const path = pts
+      .map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)},${p[1].toFixed(1)}`)
+      .join(" ");
     const area = `${path} L${W},${H} L0,${H} Z`;
     return { path, area };
   })();
@@ -791,7 +835,14 @@ function Telemetry({
         animation: "none",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 4,
+        }}
+      >
         <div style={{ fontSize: 14, fontWeight: 800, color: "#f2f0e9" }}>{def.label}</div>
         <button
           onClick={onClose}
@@ -812,9 +863,19 @@ function Telemetry({
         </button>
       </div>
       <div style={{ fontSize: 11, color: m.tone, marginBottom: 2 }}>● {m.status}</div>
-      <Row label="贸易额（实时）" value={(m.flow * j1).toFixed(0)} unit="亿美元/年" tone={m.tone} />
+      <Row
+        label="贸易额（实时）"
+        value={(m.flow * j1).toFixed(0)}
+        unit="亿美元/年"
+        tone={m.tone}
+      />
       <Row label="占美国进口份额" value={`${m.share}`} unit="%" />
-      <Row label="适用关税" value={`${m.rate}`} unit="%" tone={m.rate >= 100 ? COLORS.blocked : undefined} />
+      <Row
+        label="适用关税"
+        value={`${m.rate}`}
+        unit="%"
+        tone={m.rate >= 100 ? COLORS.blocked : undefined}
+      />
       <div style={{ marginTop: 9 }}>
         <div style={{ fontSize: 10, color: "#8b98a5", marginBottom: 3 }}>
           实时走势 · {Math.round(live).toLocaleString()} 亿$/年
@@ -835,7 +896,15 @@ function Telemetry({
  * Mode toggle + hint
  * ================================================================== */
 function Toggle({ war, setWar }: { war: boolean; setWar: (v: boolean) => void }) {
-  const B = ({ on, children, onClick }: { on: boolean; children: ReactNode; onClick: () => void }) => (
+  const B = ({
+    on,
+    children,
+    onClick,
+  }: {
+    on: boolean;
+    children: ReactNode;
+    onClick: () => void;
+  }) => (
     <button
       onClick={onClick}
       style={{
@@ -922,7 +991,8 @@ function LabelOverlay({ data }: { data: OverlayData }) {
                 style={{
                   width: 30,
                   height: 1,
-                  background: "linear-gradient(90deg, rgba(160,190,215,.65), rgba(160,190,215,0))",
+                  background:
+                    "linear-gradient(90deg, rgba(160,190,215,.65), rgba(160,190,215,0))",
                   marginBottom: 3,
                   marginLeft: right ? "auto" : 0,
                   transform: right ? "scaleX(-1)" : "none",
@@ -1022,7 +1092,14 @@ export default function GlobeCanvas() {
         onPointerMissed={() => setSelected(null)}
       >
         <Suspense fallback={null}>
-          <Scene war={war} selected={selected} setSelected={setSelected} mobile={mobile} t={t} onOverlay={onOverlay} />
+          <Scene
+            war={war}
+            selected={selected}
+            setSelected={setSelected}
+            mobile={mobile}
+            t={t}
+            onOverlay={onOverlay}
+          />
         </Suspense>
       </Canvas>
 

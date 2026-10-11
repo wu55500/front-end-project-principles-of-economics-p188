@@ -8,21 +8,15 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getSql } from "@/lib/db";
+import {
+  WB_INDICATORS,
+  averageIndicator2005_2024,
+  parseWorldBankPayload,
+} from "@/lib/data/worldbank";
+import type { IndicatorPoint } from "@/lib/data/worldbank";
 
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // refresh at most twice a day
 
-// Curated, trade-relevant indicators (World Bank codes).
-export const WB_INDICATORS: { code: string; label: string; unit: string }[] = [
-  { code: "NE.TRD.GNFS.ZS", label: "贸易占GDP比重", unit: "%" },
-  { code: "NE.IMP.GNFS.ZS", label: "商品与服务进口/GDP", unit: "%" },
-  { code: "NE.EXP.GNFS.ZS", label: "商品与服务出口/GDP", unit: "%" },
-  { code: "BN.CAB.XOKA.GD.ZS", label: "经常账户余额/GDP", unit: "%" },
-];
-
-export interface IndicatorPoint {
-  year: number;
-  value: number | null;
-}
 export interface IndicatorSeries {
   source: "worldbank";
   code: string;
@@ -33,30 +27,14 @@ export interface IndicatorSeries {
   avg20: number | null;
 }
 
-const avgOf = (pts: IndicatorPoint[]) => {
-  const win = pts.filter((p) => p.year >= 2005 && p.year <= 2024 && p.value != null);
-  if (!win.length) return null;
-  return win.reduce((a, p) => a + (p.value as number), 0) / win.length;
-};
-
-async function fetchWorldBank(
-  code: string,
-  country: string,
-): Promise<IndicatorPoint[]> {
+async function fetchWorldBank(code: string, country: string): Promise<IndicatorPoint[]> {
   // World Bank v2: JSON, per_page 100, most recent first.
   const url = `https://api.worldbank.org/v2/country/${encodeURIComponent(
     country,
   )}/indicator/${encodeURIComponent(code)}?format=json&per_page=60&date=1990:2024`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`worldbank ${res.status}`);
-  const json = (await res.json()) as unknown;
-  // Shape: [meta, [ {date, value}, ... ]]
-  const rows = Array.isArray(json) ? (json[1] as { date: string; value: number | null }[] | undefined) : undefined;
-  if (!Array.isArray(rows)) return [];
-  return rows
-    .map((r) => ({ year: Number(r.date.slice(0, 4)), value: r.value ?? null }))
-    .filter((p) => p.value !== null)
-    .sort((a, b) => a.year - b.year);
+  return parseWorldBankPayload(await res.json());
 }
 
 const CountrySchema = z
@@ -86,7 +64,11 @@ export const getIndicator = createServerFn({ method: "POST" })
     const meta = WB_INDICATORS.find((i) => i.code === data.code)!;
     const country = data.country.toUpperCase();
 
-    const cached = await sql.query<{ year: number; value: string | null; fetched_at: Date | string }>(
+    const cached = await sql.query<{
+      year: number;
+      value: string | null;
+      fetched_at: Date | string;
+    }>(
       `select year, value, fetched_at from econ_indicators
         where source='worldbank' and indicator=$1 and country=$2
         order by year asc`,
@@ -104,8 +86,16 @@ export const getIndicator = createServerFn({ method: "POST" })
         label: meta.label,
         unit: meta.unit,
         country,
-        points: cached.map((r) => ({ year: Number(r.year), value: r.value == null ? null : Number(r.value) })),
-        avg20: avgOf(cached.map((r) => ({ year: Number(r.year), value: r.value == null ? null : Number(r.value) }))),
+        points: cached.map((r) => ({
+          year: Number(r.year),
+          value: r.value == null ? null : Number(r.value),
+        })),
+        avg20: averageIndicator2005_2024(
+          cached.map((r) => ({
+            year: Number(r.year),
+            value: r.value == null ? null : Number(r.value),
+          })),
+        ),
       };
     }
 
@@ -127,7 +117,7 @@ export const getIndicator = createServerFn({ method: "POST" })
       unit: meta.unit,
       country,
       points,
-      avg20: avgOf(points),
+      avg20: averageIndicator2005_2024(points),
     };
   });
 

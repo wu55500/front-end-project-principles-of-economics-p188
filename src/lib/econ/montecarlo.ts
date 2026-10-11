@@ -36,7 +36,8 @@ export interface McResult {
 function mulberry32(seed: number) {
   let a = seed >>> 0;
   return () => {
-    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
     let t = Math.imul(a ^ (a >>> 15), 1 | a);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
@@ -44,7 +45,8 @@ function mulberry32(seed: number) {
 }
 // Box-Muller 正态
 function gaussian(rand: () => number) {
-  let u = 0, v = 0;
+  let u = 0,
+    v = 0;
   while (u === 0) u = rand();
   while (v === 0) v = rand();
   return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
@@ -72,7 +74,8 @@ export function monteCarloNet(opt: McOptions): McResult {
   const pNegative = samples.filter((x) => x < 0).length / nSims;
 
   // 直方图（20桶）
-  const lo = sorted[0], hi = sorted[nSims - 1];
+  const lo = sorted[0],
+    hi = sorted[nSims - 1];
   const bins = 20;
   const width = (hi - lo) / bins || 1;
   const histogram = Array.from({ length: bins }, (_, b) => ({
@@ -87,10 +90,13 @@ export function monteCarloNet(opt: McOptions): McResult {
 
   return {
     nSims,
-    mean: round(mean), sd: round(sd),
-    p05: round(quantile(0.05)), p95: round(quantile(0.95)),
+    mean: round(mean),
+    sd: round(sd),
+    p05: round(quantile(0.05)),
+    p95: round(quantile(0.95)),
     pNegative: Math.round(pNegative * 10000) / 10000,
-    histogram, samples,
+    histogram,
+    samples,
     deterministic: round(deterministicNet(opt.t)),
   };
 }

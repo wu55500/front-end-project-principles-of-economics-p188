@@ -82,7 +82,9 @@ export const Route = createFileRoute("/api/rtc")({
         );
         const ids = sigRows.map((r) => Number(r.id));
         if (ids.length) {
-          await sql.query("update rtc_signals set consumed = true where id = any($1)", [ids]);
+          await sql.query("update rtc_signals set consumed = true where id = any($1)", [
+            ids,
+          ]);
         }
 
         return jsonRes({
@@ -109,7 +111,8 @@ export const Route = createFileRoute("/api/rtc")({
 
         if (op === "create") {
           const peerId = String(body.peerId ?? "").trim();
-          if (!peerId || peerId.length > 120) return jsonRes({ error: "bad_request" }, 400);
+          if (!peerId || peerId.length > 120)
+            return jsonRes({ error: "bad_request" }, 400);
 
           await sql.query("delete from rtc_rooms where last_active_at < $1", [
             new Date(Date.now() - ROOM_TTL_MS),
@@ -145,10 +148,10 @@ export const Route = createFileRoute("/api/rtc")({
              values ($1, $2, $3, $4, $5::jsonb, false)`,
             [room, from, to, kind, JSON.stringify(body.payload ?? null)],
           );
-          await sql.query("update rtc_rooms set last_active_at = $2 where room_code = $1", [
-            room,
-            now,
-          ]);
+          await sql.query(
+            "update rtc_rooms set last_active_at = $2 where room_code = $1",
+            [room, now],
+          );
           return jsonRes({ ok: true });
         }
 
@@ -161,10 +164,10 @@ export const Route = createFileRoute("/api/rtc")({
               where room_code = $1 and (from_peer = $2 or target_peer = $2)`,
             [room, peer],
           );
-          await sql.query("update rtc_rooms set last_active_at = $2 where room_code = $1", [
-            room,
-            now,
-          ]);
+          await sql.query(
+            "update rtc_rooms set last_active_at = $2 where room_code = $1",
+            [room, now],
+          );
           return jsonRes({ ok: true });
         }
 

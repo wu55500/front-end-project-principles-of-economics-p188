@@ -7,10 +7,7 @@
  */
 import { useMemo, useState } from "react";
 import { GitBranch } from "lucide-react";
-import {
-  differenceInDifferences,
-  grangerCausality,
-} from "@/lib/causal/causal";
+import { differenceInDifferences, grangerCausality } from "@/lib/causal/causal";
 
 export function CausalPanel() {
   return (
@@ -64,8 +61,16 @@ function DidCard() {
         <Cell label="对照组 · 后" value={v.ca} onChange={(x) => setV({ ...v, ca: x })} />
       </div>
       <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-        <Cell label="每组样本量 n" value={v.n} onChange={(x) => setV({ ...v, n: x.replace(/\D/g, "") })} />
-        <Cell label="共同标准差(可选)" value={v.sd} onChange={(x) => setV({ ...v, sd: x })} />
+        <Cell
+          label="每组样本量 n"
+          value={v.n}
+          onChange={(x) => setV({ ...v, n: x.replace(/\D/g, "") })}
+        />
+        <Cell
+          label="共同标准差(可选)"
+          value={v.sd}
+          onChange={(x) => setV({ ...v, sd: x })}
+        />
       </div>
 
       <div className="mt-4 rounded-lg border border-line p-4">
@@ -86,7 +91,15 @@ function DidCard() {
   );
 }
 
-function Cell({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function Cell({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
   return (
     <label className="block">
       <span className="text-xs text-dim">{label}</span>
@@ -138,7 +151,9 @@ function GrangerCard() {
             onClick={() => setLags(l)}
             className={
               "h-8 rounded-md px-3 text-xs " +
-              (lags === l ? "bg-accent text-accent-fg" : "border border-line-strong text-muted")
+              (lags === l
+                ? "bg-accent text-accent-fg"
+                : "border border-line-strong text-muted")
             }
           >
             {l}
@@ -148,11 +163,17 @@ function GrangerCard() {
 
       <div className="mt-4 rounded-lg border border-line p-4">
         <p className="text-xs text-dim">检验结果（x 是否 Granger 引致 y）</p>
-        <p className={"mt-1 font-display text-2xl " + (result.xCausesY ? "text-gain" : "text-loss")}>
+        <p
+          className={
+            "mt-1 font-display text-2xl " + (result.xCausesY ? "text-gain" : "text-loss")
+          }
+        >
           {result.xCausesY ? "显著（有预测增量）" : "不显著"}
         </p>
         <p className="mt-2 text-xs text-muted">
-          F {result.f.toFixed(2)} · p {result.p < 1e-4 ? result.p.toExponential(2) : result.p.toFixed(4)} · n {result.n}
+          F {result.f.toFixed(2)} · p{" "}
+          {result.p < 1e-4 ? result.p.toExponential(2) : result.p.toFixed(4)} · n{" "}
+          {result.n}
         </p>
         <p className="mt-2 text-xs leading-relaxed text-dim">{result.note}</p>
       </div>

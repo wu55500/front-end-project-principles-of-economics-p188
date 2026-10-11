@@ -48,11 +48,11 @@ export function buildGame(tRaw: number): GameSetup {
       // IS=自由贸易
       [
         { is: acceptGain, nl: -deadweight }, // NL=补贴
-        { is: 0, nl: 0 },                   // NL=不补贴
+        { is: 0, nl: 0 }, // NL=不补贴
       ],
       // IS=关税
       [
-        { is: 0, nl: 0 },                        // NL=补贴，互相抵消
+        { is: 0, nl: 0 }, // NL=补贴，互相抵消
         { is: -deadweight / 2, nl: -deadweight / 4 }, // NL=不补贴，IS自伤
       ],
     ],

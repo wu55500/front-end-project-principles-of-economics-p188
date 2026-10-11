@@ -21,7 +21,10 @@ test("parsePreviewArgs rejects missing, unknown and extra arguments", () => {
   assert.match(parsePreviewArgs([]).error, /usage:/);
   assert.match(parsePreviewArgs(["reload"]).error, /unknown action: reload/);
   assert.match(parsePreviewArgs(["start"]).error, /unknown action: start/);
-  assert.match(parsePreviewArgs(["restart", "--force"]).error, /unexpected argument: --force/);
+  assert.match(
+    parsePreviewArgs(["restart", "--force"]).error,
+    /unexpected argument: --force/,
+  );
 });
 
 test("parsePid reads a pidfile and rejects junk", () => {
@@ -87,7 +90,12 @@ test("parseListenerInodes reads the tcp6 dump the same way", () => {
 const cmdline = (...argv) => argv.join("\u0000");
 
 test("looksLikePreviewProcess matches the npm wrapper and its vite child", () => {
-  const npmRun = cmdline("node", "/usr/lib/node_modules/npm/bin/npm-cli.js", "run", "preview");
+  const npmRun = cmdline(
+    "node",
+    "/usr/lib/node_modules/npm/bin/npm-cli.js",
+    "run",
+    "preview",
+  );
   assert.equal(looksLikePreviewProcess(npmRun), true);
   assert.equal(looksLikePreviewProcess(cmdline("npm", "run", "preview")), true);
   assert.equal(
@@ -107,11 +115,20 @@ test("looksLikePreviewProcess spares the sibling scripts and re-used pids", () =
     "/tmp/preview-thumbnail.png",
   );
   assert.equal(looksLikePreviewProcess(thumbnail), false);
-  assert.equal(looksLikePreviewProcess(cmdline("node", "scripts/preview.mjs", "stop")), false);
+  assert.equal(
+    looksLikePreviewProcess(cmdline("node", "scripts/preview.mjs", "stop")),
+    false,
+  );
   // This tooling's own npm wrappers, which carry no `.mjs` in their cmdline.
   const npmCli = "/usr/lib/node_modules/npm/bin/npm-cli.js";
-  assert.equal(looksLikePreviewProcess(cmdline("node", npmCli, "run", "preview:stop")), false);
-  assert.equal(looksLikePreviewProcess(cmdline("node", npmCli, "run", "preview:restart")), false);
+  assert.equal(
+    looksLikePreviewProcess(cmdline("node", npmCli, "run", "preview:stop")),
+    false,
+  );
+  assert.equal(
+    looksLikePreviewProcess(cmdline("node", npmCli, "run", "preview:restart")),
+    false,
+  );
   assert.equal(looksLikePreviewProcess(cmdline("npm", "run", "preview:stop")), false);
   const viteBuild = cmdline("vite", "build", "--outDir", "preview-dist");
   assert.equal(looksLikePreviewProcess(viteBuild), false);
@@ -134,7 +151,8 @@ test("previewOwners adds a pidfile pid whose command line is still the preview",
   const owners = previewOwners({
     portPids: [51],
     pidFilePid: 50,
-    cmdlineOf: (pid) => (pid === 50 ? cmdline("node", "npm-cli.js", "run", "preview") : ""),
+    cmdlineOf: (pid) =>
+      pid === 50 ? cmdline("node", "npm-cli.js", "run", "preview") : "",
   });
   assert.deepEqual(owners, [51, 50]);
 });

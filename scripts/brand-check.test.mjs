@@ -218,7 +218,11 @@ test("no marker means nothing is in flight", () => {
 });
 
 test("parseBrandCheckArgs takes --game, --placeholder-ok and --root, and rejects the rest", () => {
-  assert.deepEqual(parseBrandCheckArgs([]), { game: false, placeholderOk: false, root: null });
+  assert.deepEqual(parseBrandCheckArgs([]), {
+    game: false,
+    placeholderOk: false,
+    root: null,
+  });
   assert.deepEqual(parseBrandCheckArgs(["--game", "--root", "/tmp/w"]), {
     game: true,
     placeholderOk: false,
@@ -276,9 +280,15 @@ test("cli: a non-game with no card fails too — the pass exists to produce one"
   const result = JSON.parse(run.stdout);
   assert.equal(result.ok, false);
   assert.equal(result.warnings, 1);
-  assert.match(result.messages[0], /^BRAND WARNING: .*og\.jpg is missing and this pass exists/);
+  assert.match(
+    result.messages[0],
+    /^BRAND WARNING: .*og\.jpg is missing and this pass exists/,
+  );
   // The parent's gate keeps tolerating the placeholder for a plain utility.
-  assert.match(computeBrandWarnings({ hasCanvas: false, workspaceRoot: root })[0], /^BRAND NOTE:/);
+  assert.match(
+    computeBrandWarnings({ hasCanvas: false, workspaceRoot: root })[0],
+    /^BRAND NOTE:/,
+  );
 });
 
 test("cli: --placeholder-ok is how a plain-utility pass reports no card as expected", () => {
@@ -340,7 +350,9 @@ function prohibitionSection({ rel, label, from, until }) {
   const rest = doc.slice(start + from.length);
   const end = rest.search(until);
   // Markdown emphasis and prose wrapping both sit between the two words.
-  return (from + (end === -1 ? rest : rest.slice(0, end))).replace(/[`*]/g, "").replace(/\s+/g, " ");
+  return (from + (end === -1 ? rest : rest.slice(0, end)))
+    .replace(/[`*]/g, "")
+    .replace(/\s+/g, " ");
 }
 
 test("the sections that own the brand-task prohibition never affirm a wait", () => {

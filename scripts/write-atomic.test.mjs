@@ -82,7 +82,10 @@ test("handOver creates a missing target directory", () => {
 
   handOver(staged, join(root, "src/lib/og/site.json"));
 
-  assert.equal(readFileSync(join(root, "src/lib/og/site.json"), "utf8"), '{"title":"Sky Strike"}');
+  assert.equal(
+    readFileSync(join(root, "src/lib/og/site.json"), "utf8"),
+    '{"title":"Sky Strike"}',
+  );
 });
 
 test("an interrupted pass leaves the target on its old bytes, temp-free", () => {
@@ -93,7 +96,9 @@ test("an interrupted pass leaves the target on its old bytes, temp-free", () => 
   writeFileSync(join(root, ".grok/og.jpg.tmp"), "half a JPEG");
 
   assert.equal(readFileSync(target, "utf8"), "old card");
-  assert.throws(() => handOver(join(root, ".grok/absent.tmp"), target), { code: "ENOENT" });
+  assert.throws(() => handOver(join(root, ".grok/absent.tmp"), target), {
+    code: "ENOENT",
+  });
   assert.equal(readFileSync(target, "utf8"), "old card");
   assert.equal(existsSync(`${target}.tmp-${process.pid}`), false);
 });
@@ -101,7 +106,9 @@ test("an interrupted pass leaves the target on its old bytes, temp-free", () => 
 test("a failed hand-over creates no directory for the target it never wrote", () => {
   const root = makeWorkspace();
   const missing = join(root, ".grok/absent.tmp");
-  assert.throws(() => handOver(missing, join(root, "src/lib/og/site.json")), { code: "ENOENT" });
+  assert.throws(() => handOver(missing, join(root, "src/lib/og/site.json")), {
+    code: "ENOENT",
+  });
   assert.equal(existsSync(join(root, "src")), false);
 });
 
@@ -154,10 +161,14 @@ test("cli: relative paths follow the script's root, not the caller's cwd", () =>
   // directory the refusal is defined against and move it.
   const root = makeWorkspace();
   writeFileSync(join(root, "public/og.jpg.tmp"), "half a JPEG");
-  const run = spawnSync(process.execPath, [SCRIPT, "public/og.jpg.tmp", "public/og.jpg"], {
-    cwd: root,
-    encoding: "utf8",
-  });
+  const run = spawnSync(
+    process.execPath,
+    [SCRIPT, "public/og.jpg.tmp", "public/og.jpg"],
+    {
+      cwd: root,
+      encoding: "utf8",
+    },
+  );
   assert.equal(run.status, 1, run.stdout + run.stderr);
   assert.match(run.stderr, /stage outside/);
   assert.equal(readFileSync(join(root, "public/og.jpg.tmp"), "utf8"), "half a JPEG");
@@ -169,10 +180,13 @@ test("every hand-over the og skill prints is one this script accepts", () => {
   const skillDir = join(TEMPLATE_ROOT, ".grok/skills/og");
   const docs = [
     join(skillDir, "SKILL.md"),
-    ...readdirSync(join(skillDir, "references")).map((f) => join(skillDir, "references", f)),
+    ...readdirSync(join(skillDir, "references")).map((f) =>
+      join(skillDir, "references", f),
+    ),
   ];
   const invocations = docs.flatMap(
-    (path) => readFileSync(path, "utf8").match(/node scripts\/write-atomic\.mjs[^\n`]*/g) ?? [],
+    (path) =>
+      readFileSync(path, "utf8").match(/node scripts\/write-atomic\.mjs[^\n`]*/g) ?? [],
   );
   assert.ok(invocations.length >= 3, "og.jpg, x-banner.jpg and site.json each hand over");
   for (const line of invocations) {
@@ -180,7 +194,11 @@ test("every hand-over the og skill prints is one this script accepts", () => {
     const args = parseWriteAtomicArgs(argv);
     assert.equal(args.error, undefined, line);
     assert.equal(
-      stagingError({ staged: args.staged, target: args.target, publicDir: "/workspace/public" }),
+      stagingError({
+        staged: args.staged,
+        target: args.target,
+        publicDir: "/workspace/public",
+      }),
       null,
       line,
     );

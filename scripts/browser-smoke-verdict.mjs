@@ -85,8 +85,13 @@ export function compareToBaseline(current, baseline) {
     if (baseLen > 0 && curLen < baseLen * COLLAPSE_RATIO) {
       reasons.push(`${name}: body text collapsed (${baseLen} -> ${curLen} chars)`);
     } else if (cur.bodyTextHash !== base.bodyTextHash) {
-      if (Math.abs(curLen - baseLen) > Math.max(TRIVIAL_LEN_DELTA, baseLen * TRIVIAL_LEN_RATIO)) {
-        reasons.push(`${name}: body text changed (${baseLen} -> ${curLen} chars, hash mismatch)`);
+      if (
+        Math.abs(curLen - baseLen) >
+        Math.max(TRIVIAL_LEN_DELTA, baseLen * TRIVIAL_LEN_RATIO)
+      ) {
+        reasons.push(
+          `${name}: body text changed (${baseLen} -> ${curLen} chars, hash mismatch)`,
+        );
       } else if (
         base.bodyTextPrefix !== undefined &&
         cur.bodyTextPrefix !== undefined &&
@@ -113,7 +118,10 @@ export function baselineComparison(current, rawText) {
     typeof baseline.viewports !== "object" ||
     Array.isArray(baseline.viewports)
   ) {
-    return { divergesFromBaseline: true, reasons: ["baseline unreadable: not a verdict object"] };
+    return {
+      divergesFromBaseline: true,
+      reasons: ["baseline unreadable: not a verdict object"],
+    };
   }
   return compareToBaseline(current, baseline);
 }
@@ -121,7 +129,11 @@ export function exitCodeFor(viewports) {
   const list = Object.values(viewports ?? {});
   if (list.length === 0) return 1;
   if (list.some((v) => (v.status ?? 0) >= 400 || (v.status ?? 0) === 0)) return 1;
-  if (list.some((v) => (v.consoleErrors?.length ?? 0) > 0 || (v.pageErrors?.length ?? 0) > 0)) {
+  if (
+    list.some(
+      (v) => (v.consoleErrors?.length ?? 0) > 0 || (v.pageErrors?.length ?? 0) > 0,
+    )
+  ) {
     return 2;
   }
   return 0;

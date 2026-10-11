@@ -1,10 +1,6 @@
 import { afterEach, beforeEach, describe, it, mock } from "node:test";
 import assert from "node:assert/strict";
-import {
-  callTool,
-  failureMemoSize,
-  isConnectorTokenReady,
-} from "./client.server.ts";
+import { callTool, failureMemoSize, isConnectorTokenReady } from "./client.server.ts";
 import { ConnectorType, GoogleCalendarTools } from "./types.ts";
 import type { ToolArgs } from "./types.ts";
 import { isLoginRequired, redirectToLoginIfRequired } from "./login.ts";
@@ -206,10 +202,14 @@ describe("callTool in the workspace preview vs deployed", () => {
   it("keeps loginRequired for a gate 401 on a deployed app", async () => {
     process.env.GROK_PROJECT_ID = "proj-1";
     await withStubbedGate(401, { errorMessage: "login required" }, async () => {
-      const result = await callTool("google_drive_search", {}, {
-        ...options,
-        token: fakeJwt({ sub: "d", iat: 1, exp: 2 }),
-      });
+      const result = await callTool(
+        "google_drive_search",
+        {},
+        {
+          ...options,
+          token: fakeJwt({ sub: "d", iat: 1, exp: 2 }),
+        },
+      );
       assert.equal(result.loginRequired, true);
       assert.equal(result.pending, undefined);
     });
@@ -222,14 +222,10 @@ describe("callTool", () => {
     try {
       const circular: Record<string, unknown> = {};
       circular.self = circular;
-      const result = await callTool(
-        "google_drive_search",
-        circular as ToolArgs,
-        {
-          connectorType: ConnectorType.GoogleDrive,
-          token: "opaque-token",
-        },
-      );
+      const result = await callTool("google_drive_search", circular as ToolArgs, {
+        connectorType: ConnectorType.GoogleDrive,
+        token: "opaque-token",
+      });
       assert.equal(result.ok, false);
       assert.match(result.errorMessage ?? "", /circular/i);
     } finally {
@@ -240,10 +236,7 @@ describe("callTool", () => {
 
 describe("isLoginRequired", () => {
   it("is true only for login-required failures", () => {
-    assert.equal(
-      isLoginRequired({ ok: false, data: null, loginRequired: true }),
-      true,
-    );
+    assert.equal(isLoginRequired({ ok: false, data: null, loginRequired: true }), true);
     assert.equal(isLoginRequired({ ok: false, data: null }), false);
     assert.equal(
       isLoginRequired({ ok: false, data: null, errorMessage: "access_denied" }),
@@ -376,8 +369,7 @@ describe("redirectToLoginIfRequired", () => {
           href: "https://my-app.grok.me/current",
         },
       },
-      () =>
-        redirectToLoginIfRequired({ ok: false, data: null, loginRequired: true }),
+      () => redirectToLoginIfRequired({ ok: false, data: null, loginRequired: true }),
     );
     assert.equal(did, false);
     assert.equal(target, "");
@@ -413,7 +405,8 @@ describe("classifyCallToolError", () => {
       ok: false,
       data: null,
       pending: true,
-      errorMessage: "connector_token_pending: the preview has not received the connector token yet",
+      errorMessage:
+        "connector_token_pending: the preview has not received the connector token yet",
     });
     assert.equal(state?.kind, "pending");
     assert.match(state?.message ?? "", /Connecting/);

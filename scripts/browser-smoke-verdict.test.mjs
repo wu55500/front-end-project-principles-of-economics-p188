@@ -59,7 +59,10 @@ test("identical runs do not diverge", () => {
 });
 
 test("status change diverges", () => {
-  const { divergesFromBaseline, reasons } = compareToBaseline(verdict({ status: 500 }), verdict());
+  const { divergesFromBaseline, reasons } = compareToBaseline(
+    verdict({ status: 500 }),
+    verdict(),
+  );
   assert.equal(divergesFromBaseline, true);
   assert.match(reasons.join(";"), /desktop: HTTP status changed 200 -> 500/);
 });
@@ -82,11 +85,17 @@ test("title comparison is skipped when either side lacks one", () => {
 });
 
 test("canvas disappearing diverges; canvas appearing does not", () => {
-  const gone = compareToBaseline(verdict({ hasCanvas: false }), verdict({ hasCanvas: true }));
+  const gone = compareToBaseline(
+    verdict({ hasCanvas: false }),
+    verdict({ hasCanvas: true }),
+  );
   assert.equal(gone.divergesFromBaseline, true);
   assert.match(gone.reasons.join(";"), /desktop: canvas disappeared/);
 
-  const appeared = compareToBaseline(verdict({ hasCanvas: true }), verdict({ hasCanvas: false }));
+  const appeared = compareToBaseline(
+    verdict({ hasCanvas: true }),
+    verdict({ hasCanvas: false }),
+  );
   assert.equal(appeared.divergesFromBaseline, false);
 });
 
@@ -157,7 +166,11 @@ test("hash mismatch with a trivial length delta and same page start is tolerated
 
 test("hash mismatch with a trivial length delta but changed page start diverges", () => {
   const { divergesFromBaseline, reasons } = compareToBaseline(
-    verdict({ bodyTextLen: 510, bodyTextHash: "bbb", bodyTextPrefix: "500 Internal Error" }),
+    verdict({
+      bodyTextLen: 510,
+      bodyTextHash: "bbb",
+      bodyTextPrefix: "500 Internal Error",
+    }),
     verdict(),
   );
   assert.equal(divergesFromBaseline, true);
@@ -183,10 +196,16 @@ test("prefix check is skipped when either side lacks a prefix", () => {
 });
 
 test("length-delta tolerance boundary: 50 tolerated, 51 diverges (500-char baseline)", () => {
-  const at = compareToBaseline(verdict({ bodyTextLen: 550, bodyTextHash: "bbb" }), verdict());
+  const at = compareToBaseline(
+    verdict({ bodyTextLen: 550, bodyTextHash: "bbb" }),
+    verdict(),
+  );
   assert.equal(at.divergesFromBaseline, false);
 
-  const over = compareToBaseline(verdict({ bodyTextLen: 551, bodyTextHash: "bbb" }), verdict());
+  const over = compareToBaseline(
+    verdict({ bodyTextLen: 551, bodyTextHash: "bbb" }),
+    verdict(),
+  );
   assert.equal(over.divergesFromBaseline, true);
   assert.match(over.reasons.join(";"), /desktop: body text changed/);
 });
@@ -207,11 +226,20 @@ test("length-delta floor dominates small baselines: 20 tolerated, 21 diverges (1
 });
 
 test("collapse boundary: exactly half is 'changed', one below is 'collapsed'", () => {
-  const half = compareToBaseline(verdict({ bodyTextLen: 250, bodyTextHash: "bbb" }), verdict());
+  const half = compareToBaseline(
+    verdict({ bodyTextLen: 250, bodyTextHash: "bbb" }),
+    verdict(),
+  );
   assert.match(half.reasons.join(";"), /desktop: body text changed \(500 -> 250 chars/);
 
-  const below = compareToBaseline(verdict({ bodyTextLen: 249, bodyTextHash: "bbb" }), verdict());
-  assert.match(below.reasons.join(";"), /desktop: body text collapsed \(500 -> 249 chars\)/);
+  const below = compareToBaseline(
+    verdict({ bodyTextLen: 249, bodyTextHash: "bbb" }),
+    verdict(),
+  );
+  assert.match(
+    below.reasons.join(";"),
+    /desktop: body text collapsed \(500 -> 249 chars\)/,
+  );
 });
 
 test("missing baseline viewport diverges", () => {
@@ -250,7 +278,10 @@ test("multiple signals across viewports all accumulate", () => {
 });
 
 test("baselineComparison round-trips a valid baseline", () => {
-  const { divergesFromBaseline } = baselineComparison(verdict(), JSON.stringify(verdict()));
+  const { divergesFromBaseline } = baselineComparison(
+    verdict(),
+    JSON.stringify(verdict()),
+  );
   assert.equal(divergesFromBaseline, false);
 });
 
@@ -305,7 +336,10 @@ test("parseSmokeArgs rejects a trailing --baseline flag", () => {
 });
 
 test("parseSmokeArgs supports the --baseline= form", () => {
-  assert.equal(parseSmokeArgs(["--baseline=/workspace/a.json"], {}).baseline, "/workspace/a.json");
+  assert.equal(
+    parseSmokeArgs(["--baseline=/workspace/a.json"], {}).baseline,
+    "/workspace/a.json",
+  );
   assert.deepEqual(parseSmokeArgs(["--baseline="], {}), {
     error: "--baseline requires a path to a prior verdict JSON",
   });
@@ -357,7 +391,10 @@ test("exitCodeFor: errors in any single viewport exit 2", () => {
 test("exitCodeFor: navigation failure in any viewport exits 1, beating errors", () => {
   assert.equal(exitCodeFor(verdict({}, { status: 500 }).viewports), 1);
   assert.equal(exitCodeFor(verdict({ status: 0 }).viewports), 1);
-  assert.equal(exitCodeFor(verdict({ status: 404 }, { consoleErrors: ["boom"] }).viewports), 1);
+  assert.equal(
+    exitCodeFor(verdict({ status: 404 }, { consoleErrors: ["boom"] }).viewports),
+    1,
+  );
 });
 
 test("exitCodeFor: 4xx boundary and missing status", () => {
@@ -375,12 +412,27 @@ test("browser-smoke wires the guard and verdict helpers", () => {
   const src = readFileSync(join(TEMPLATE_ROOT, "scripts/browser-smoke.mjs"), "utf8");
   assert.match(src, /from "\.\/browser-guard\.mjs"/);
   assert.match(src, /from "\.\/browser-smoke-verdict\.mjs"/);
-  assert.match(src, /const args = parseSmokeArgs\(process\.argv\.slice\(2\), process\.env\)/);
+  assert.match(
+    src,
+    /const args = parseSmokeArgs\(process\.argv\.slice\(2\), process\.env\)/,
+  );
   assert.match(src, /const url = checkedUrl\(args\.url\)/);
-  assert.match(src, /const outPng = checkedOutputPath\(args\.outPng, \["\/workspace"\]\)/);
-  assert.match(src, /const mobilePng = checkedOutputPath\(derived\.mobilePng, \["\/workspace"\]\)/);
-  assert.match(src, /const outJson = checkedOutputPath\(derived\.verdictJson, \["\/workspace"\]/);
-  assert.match(src, /checkedOutputPath\(realpathSync\(args\.baseline\), \["\/workspace"\]/);
+  assert.match(
+    src,
+    /const outPng = checkedOutputPath\(args\.outPng, \["\/workspace"\]\)/,
+  );
+  assert.match(
+    src,
+    /const mobilePng = checkedOutputPath\(derived\.mobilePng, \["\/workspace"\]\)/,
+  );
+  assert.match(
+    src,
+    /const outJson = checkedOutputPath\(derived\.verdictJson, \["\/workspace"\]/,
+  );
+  assert.match(
+    src,
+    /checkedOutputPath\(\s*realpathSync\(\s*args\.baseline\s*\)\s*,\s*\["\/workspace"\]/,
+  );
   assert.match(src, /baselinePath === outJson/);
   assert.match(src, /normalizedBodyTextHash\(/);
   assert.match(src, /bodyTextPrefix\(/);
@@ -402,14 +454,21 @@ test("browser-smoke wires the guard and verdict helpers", () => {
 
 test("browser-smoke file I/O only touches guarded paths", () => {
   const src = readFileSync(join(TEMPLATE_ROOT, "scripts/browser-smoke.mjs"), "utf8");
-  assert.doesNotMatch(src, /(?:writeFileSync|readFileSync|statSync|realpathSync)\(\s*["'`]/);
-  const writes = [...src.matchAll(/writeFileSync\(\s*([A-Za-z_$][\w$.]*)/g)].map((m) => m[1]);
+  assert.doesNotMatch(
+    src,
+    /(?:writeFileSync|readFileSync|statSync|realpathSync)\(\s*["'`]/,
+  );
+  const writes = [...src.matchAll(/writeFileSync\(\s*([A-Za-z_$][\w$.]*)/g)].map(
+    (m) => m[1],
+  );
   assert.equal(writes.length, 2);
   assert.ok(
     writes.every((v) => v === "outJson"),
     `unexpected writeFileSync target: ${writes}`,
   );
-  const reads = [...src.matchAll(/readFileSync\(\s*([A-Za-z_$][\w$.]*)/g)].map((m) => m[1]);
+  const reads = [...src.matchAll(/readFileSync\(\s*([A-Za-z_$][\w$.]*)/g)].map(
+    (m) => m[1],
+  );
   assert.deepEqual(reads, ["baselinePath"]);
   const stats = [...src.matchAll(/statSync\(\s*([A-Za-z_$][\w$.]*)/g)].map((m) => m[1]);
   assert.deepEqual(stats, ["baselinePath"]);

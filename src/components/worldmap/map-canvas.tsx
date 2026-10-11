@@ -11,7 +11,12 @@ import { useViz } from "@/store/viz";
 const WORLD = atlas as unknown as Topology;
 
 // [lon, lat] of a few textile exporters → importers (illustrative flows).
-const FLOWS: { from: [number, number]; to: [number, number]; base: number; name: string }[] = [
+const FLOWS: {
+  from: [number, number];
+  to: [number, number];
+  base: number;
+  name: string;
+}[] = [
   { from: [116.4, 39.9], to: [-74.0, 40.7], base: 1.0, name: "CN → US East" },
   { from: [116.4, 39.9], to: [3.4, 52.6], base: 0.9, name: "CN → EU" },
   { from: [72.8, 19.1], to: [-95.7, 37.1], base: 0.55, name: "IN → US" },
@@ -103,8 +108,7 @@ export function MapCanvas() {
         throw new Error("地图数据格式异常");
       }
       const countries = feature(WORLD, WORLD.objects.countries as never) as unknown as
-        | FeatureCollection
-        | GeometryCollection;
+        FeatureCollection | GeometryCollection;
       const geoms: unknown[] =
         countries.type === "FeatureCollection"
           ? countries.features

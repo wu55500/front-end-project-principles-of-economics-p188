@@ -154,7 +154,11 @@ test("settleWithin waits its full window, then gives up rather than hanging", as
 
   t.mock.timers.tick(1);
   await done;
-  assert.equal(outcome, "timeout", "the caller is never left waiting on a wedged request");
+  assert.equal(
+    outcome,
+    "timeout",
+    "the caller is never left waiting on a wedged request",
+  );
 });
 
 // ── Pre-sign-in session clear (`signIn`) ─────────────────────────────────────

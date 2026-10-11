@@ -21,9 +21,7 @@ import {
 type Client = PGlite;
 
 /** Factory used by `auth/server.ts`: `pgliteDialect(() => getPglite())`. */
-export function pgliteDialect(
-  getClient: () => Promise<Client> | Client,
-): Dialect {
+export function pgliteDialect(getClient: () => Promise<Client> | Client): Dialect {
   return {
     createAdapter: () => new PostgresAdapter(),
     createDriver: () => new LazyPGliteDriver(getClient),
@@ -76,9 +74,7 @@ class LazyPGliteDriver implements Driver {
     const c = conn as PGliteConnection;
     if (settings.isolationLevel) {
       await c.executeQuery(
-        CompiledQuery.raw(
-          `start transaction isolation level ${settings.isolationLevel}`,
-        ),
+        CompiledQuery.raw(`start transaction isolation level ${settings.isolationLevel}`),
       );
     } else {
       await c.executeQuery(CompiledQuery.raw("begin"));
@@ -90,9 +86,7 @@ class LazyPGliteDriver implements Driver {
   }
 
   async rollbackTransaction(conn: DatabaseConnection): Promise<void> {
-    await (conn as PGliteConnection).executeQuery(
-      CompiledQuery.raw("rollback"),
-    );
+    await (conn as PGliteConnection).executeQuery(CompiledQuery.raw("rollback"));
   }
 
   async destroy(): Promise<void> {

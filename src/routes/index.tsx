@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Toaster } from "sonner";
 import { AppChrome, CopyScript } from "@/components/app-chrome";
@@ -76,7 +76,10 @@ function Home() {
 
 function Hero() {
   return (
-    <header id="top" className="relative flex min-h-[100dvh] items-end overflow-hidden pb-16 pt-24 sm:items-center sm:pb-0">
+    <header
+      id="top"
+      className="relative flex min-h-[100dvh] items-end overflow-hidden pb-16 pt-24 sm:items-center sm:pb-0"
+    >
       <HeroField />
       <div className="relative z-10 mx-auto w-full max-w-6xl px-4 sm:px-6">
         <p className="text-xs tracking-[0.18em] text-muted uppercase">
@@ -86,11 +89,15 @@ function Hero() {
           不公平竞争论
         </h1>
         <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">
-          Neighborland 政府对纺织品出口补贴，Isoland 的工厂叫苦连天。报复关税？禁止进口？还是说声谢谢？用一页图解把福利账算清楚。
+          Neighborland 政府对纺织品出口补贴，Isoland
+          的工厂叫苦连天。报复关税？禁止进口？还是说声谢谢？用一页图解把福利账算清楚。
         </p>
         <div className="mt-6 flex flex-wrap gap-2">
           {["滚动叙事", "全局状态联动", "URL 可分享", "模型单测覆盖"].map((c) => (
-            <span key={c} className="rounded-full border border-line px-3 py-1 text-xs text-muted">
+            <span
+              key={c}
+              className="rounded-full border border-line px-3 py-1 text-xs text-muted"
+            >
               {c}
             </span>
           ))}
@@ -194,7 +201,12 @@ function ChartSec() {
 
 function SceneSec() {
   return (
-    <Wrap id="scene3d" no="03" title="立体看：补贴怎样填满航道" sub="3D 场景按需加载，拖动页面里的补贴滑杆，观察货船数量与航速的变化。">
+    <Wrap
+      id="scene3d"
+      no="03"
+      title="立体看：补贴怎样填满航道"
+      sub="3D 场景按需加载，拖动页面里的补贴滑杆，观察货船数量与航速的变化。"
+    >
       <TradeScene />
     </Wrap>
   );
@@ -202,7 +214,12 @@ function SceneSec() {
 
 function MapSec() {
   return (
-    <Wrap id="worldmap" no="04" title="放眼全球：立体地球看转口贸易" sub="三维地球按需加载：中国 → 墨西哥中转换单 → 美国；切换贸易战可看关税壁垒动态阻断货流。">
+    <Wrap
+      id="worldmap"
+      no="04"
+      title="放眼全球：立体地球看转口贸易"
+      sub="三维地球按需加载：中国 → 墨西哥中转换单 → 美国；切换贸易战可看关税壁垒动态阻断货流。"
+    >
       <WorldTradeMap />
     </Wrap>
   );
@@ -210,7 +227,12 @@ function MapSec() {
 
 function DataSec() {
   return (
-    <Wrap id="realdata" no="05" title="对接现实：课本之外的真实贸易数据" sub="把世界银行的长期指标接进来，检验模型与现实的关系。">
+    <Wrap
+      id="realdata"
+      no="05"
+      title="对接现实：课本之外的真实贸易数据"
+      sub="把世界银行的长期指标接进来，检验模型与现实的关系。"
+    >
       <RealDataPanel />
     </Wrap>
   );
@@ -218,7 +240,12 @@ function DataSec() {
 
 function CausalSec() {
   return (
-    <Wrap id="causal" no="06" title="追问因果：是补贴导致了变化吗" sub="用双重差分和 Granger 检验把相关与因果分开，理解每种方法的前提。">
+    <Wrap
+      id="causal"
+      no="06"
+      title="追问因果：是补贴导致了变化吗"
+      sub="用双重差分和 Granger 检验把相关与因果分开，理解每种方法的前提。"
+    >
       <CausalPanel />
     </Wrap>
   );
@@ -239,7 +266,12 @@ function WelfareSec() {
 
 function MultiSec() {
   return (
-    <Wrap id="multi" no="05" title="一起学：开个房间，同桌同屏" sub="和同学建立点对点连接，一个人操作，两个人的图表同步；适合课堂配对讨论。">
+    <Wrap
+      id="multi"
+      no="05"
+      title="一起学：开个房间，同桌同屏"
+      sub="和同学建立点对点连接，一个人操作，两个人的图表同步；适合课堂配对讨论。"
+    >
       <RoomPanel />
     </Wrap>
   );
@@ -247,7 +279,12 @@ function MultiSec() {
 
 function TutorSec() {
   return (
-    <Wrap id="tutor" no="09" title="不懂就问：AI 辅导老师陪你练" sub="苏格拉底式提问引导，配置大模型 Key 后接真实模型，无 Key 时用内置导师。">
+    <Wrap
+      id="tutor"
+      no="09"
+      title="不懂就问：AI 辅导老师陪你练"
+      sub="苏格拉底式提问引导，配置大模型 Key 后接真实模型，无 Key 时用内置导师。"
+    >
       <TutorPanel />
     </Wrap>
   );
@@ -255,7 +292,12 @@ function TutorSec() {
 
 function QuizSec() {
   return (
-    <Wrap id="quiz" no="04" title="测一测：这页书你拿下了吗" sub="三道题，答完出结算。答错别怕，解析就是第二次讲解。">
+    <Wrap
+      id="quiz"
+      no="04"
+      title="测一测：这页书你拿下了吗"
+      sub="三道题，答完出结算。答错别怕，解析就是第二次讲解。"
+    >
       <QuizSection />
     </Wrap>
   );
@@ -271,7 +313,9 @@ function Finale() {
     >
       <blockquote className="rounded-xl border border-line bg-surface p-6 font-display text-xl leading-snug sm:p-8 sm:text-2xl">
         当邻居执意要补贴你买东西时，最好的回应不是报复，而是说声谢谢。所谓「不公平竞争」，账算到最后，是对方纳税人在为你的消费者买单。
-        <footer className="mt-4 font-sans text-sm text-dim">—— 曼昆《经济学原理》第 9 章 · 出口补贴的福利分析</footer>
+        <footer className="mt-4 font-sans text-sm text-dim">
+          —— 曼昆《经济学原理》第 9 章 · 出口补贴的福利分析
+        </footer>
       </blockquote>
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         <article className="rounded-xl border border-line bg-surface p-5">
@@ -294,7 +338,8 @@ function Finale() {
         </article>
       </div>
       <p className="mt-5 text-sm text-dim">
-        注：本页按课本局部均衡模型展开，暂不考虑报复升级、产业动态与政治经济学约束——那是第 10 章之后的故事。
+        注：本页按课本局部均衡模型展开，暂不考虑报复升级、产业动态与政治经济学约束——那是第
+        10 章之后的故事。
       </p>
       <div className="mt-8 text-center">
         <CopyScript />

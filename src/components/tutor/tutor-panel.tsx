@@ -8,13 +8,19 @@ import { GraduationCap, Send, Sparkles } from "lucide-react";
 import { askTutor, type TutorMsg } from "@/lib/tutor/tutor";
 import { useViz } from "@/store/viz";
 
-const SUGGEST = ["为什么报复关税不划算？", "禁止进口谁赚谁亏？", "什么是消费者剩余？", "为什么要说谢谢？"];
+const SUGGEST = [
+  "为什么报复关税不划算？",
+  "禁止进口谁赚谁亏？",
+  "什么是消费者剩余？",
+  "为什么要说谢谢？",
+];
 
 export function TutorPanel() {
   const [messages, setMessages] = useState<TutorMsg[]>([
     {
       role: "assistant",
-      content: "你好，我是这一课的辅导老师。与其直接给答案，我更想先问你：你觉得 Neighborland 的补贴，对 Isoland 是好事还是坏事？为什么？",
+      content:
+        "你好，我是这一课的辅导老师。与其直接给答案，我更想先问你：你觉得 Neighborland 的补贴，对 Isoland 是好事还是坏事？为什么？",
     },
   ]);
   const [input, setInput] = useState("");
@@ -25,7 +31,10 @@ export function TutorPanel() {
   const mode = useViz((s) => s.mode);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    scrollRef.current?.scrollTo({
+      top: scrollRef.current.scrollHeight,
+      behavior: "smooth",
+    });
   }, [messages, busy]);
 
   const send = async (text: string) => {

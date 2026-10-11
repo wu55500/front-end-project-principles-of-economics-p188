@@ -36,14 +36,18 @@ export function TradeScene() {
   }, []);
 
   return (
-    <div ref={hostRef} className="overflow-hidden rounded-xl border border-line bg-surface">
+    <div
+      ref={hostRef}
+      className="overflow-hidden rounded-xl border border-line bg-surface"
+    >
       {!enabled ? (
         <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 p-8 text-center">
           <Box className="size-8 text-muted" />
           <div>
             <p className="font-display text-lg">3D 全球贸易沙盘</p>
             <p className="mx-auto mt-1 max-w-md text-sm text-muted">
-              立体看清完整闭环：邻国工厂的纺织品货箱出口到岛国消费者，货款以金币回流；切到关税模式可见海关壁垒与关税收入。React Three Fiber 体积较大，点击后才加载，不拖慢首屏。
+              立体看清完整闭环：邻国工厂的纺织品货箱出口到岛国消费者，货款以金币回流；切到关税模式可见海关壁垒与关税收入。React
+              Three Fiber 体积较大，点击后才加载，不拖慢首屏。
             </p>
           </div>
           <button

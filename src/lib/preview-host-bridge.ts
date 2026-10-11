@@ -69,7 +69,7 @@ export function isSafeBridgePath(path: string): boolean {
 export function resolveCurrentEmbedderOrigin(): string | null {
   if (typeof window === "undefined") return null;
   const ancestorOrigin =
-    typeof location.ancestorOrigins !== 'undefined' && location.ancestorOrigins.length > 0
+    typeof location.ancestorOrigins !== "undefined" && location.ancestorOrigins.length > 0
       ? location.ancestorOrigins[0]
       : null;
   return resolveParentEmbedderOrigin(
@@ -96,9 +96,7 @@ export function installPreviewHostBridge(
 
   const isAtHistoryRoot = () => {
     const state = window.history.state;
-    return Boolean(
-      state && typeof state === "object" && state[ROOT_STATE_KEY] === true,
-    );
+    return Boolean(state && typeof state === "object" && state[ROOT_STATE_KEY] === true);
   };
 
   // Floor for chrome Back: only the first install in a fresh history stack is
@@ -155,7 +153,9 @@ export function installPreviewHostBridge(
       if (url.origin !== window.location.origin) return;
       const next = `${url.pathname}${url.search}${url.hash}`;
       window.history.pushState(window.history.state, "", next);
-      window.dispatchEvent(new PopStateEvent("popstate", { state: window.history.state }));
+      window.dispatchEvent(
+        new PopStateEvent("popstate", { state: window.history.state }),
+      );
     } catch {
       // ignore malformed paths
     }
@@ -237,20 +237,17 @@ export function installPreviewHostBridge(
   // Patch history so in-app SPA navigations sync the host address bar.
   window.history.pushState = (data, unused, url) => {
     const next =
-      data && typeof data === "object"
-        ? { ...data, [ROOT_STATE_KEY]: false }
-        : data;
+      data && typeof data === "object" ? { ...data, [ROOT_STATE_KEY]: false } : data;
     originalPushState(next, unused, url);
     reportLocation();
   };
   window.history.replaceState = (data, unused, url) => {
-    const next =
-      isAtHistoryRoot()
-        ? {
-            ...(data && typeof data === "object" ? data : {}),
-            [ROOT_STATE_KEY]: true,
-          }
-        : data;
+    const next = isAtHistoryRoot()
+      ? {
+          ...(data && typeof data === "object" ? data : {}),
+          [ROOT_STATE_KEY]: true,
+        }
+      : data;
     originalReplaceState(next, unused, url);
     reportLocation();
   };

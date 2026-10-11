@@ -35,7 +35,10 @@ test("_migrations keys on basename, not path", () => {
 test("a file already applied from another directory does not re-apply", () => {
   // The auth-on path copies migrations/auth/0001_auth.sql into the globbed
   // directory; a database that already has it must not run it twice.
-  assert.deepEqual(pendingMigrations(["/migrations/0001_auth.sql"], ["0001_auth.sql"]), []);
+  assert.deepEqual(
+    pendingMigrations(["/migrations/0001_auth.sql"], ["0001_auth.sql"]),
+    [],
+  );
 });
 
 test("pending migrations are returned in name order", () => {
@@ -60,9 +63,7 @@ test("the auth schema ships outside the globbed directory", () => {
   const migrationsDir = join(projectRoot(), "migrations");
   // Business migrations live at the top level; the auth schema stays isolated
   // in migrations/auth so the auth feature can ship independently.
-  const business = pendingMigrations(readdirSync(migrationsDir), []).map(
-    (m) => m.name,
-  );
+  const business = pendingMigrations(readdirSync(migrationsDir), []).map((m) => m.name);
   assert.ok(business.includes("0001_business.sql"));
   assert.ok(business.includes("0002_econ_data.sql"));
   assert.ok(!business.includes("0001_auth.sql"));

@@ -42,7 +42,10 @@ function retrieve(q: string): string {
   let best: string | null = null;
   let bestScore = 0;
   for (const item of KB) {
-    const score = item.keys.reduce((s, k) => (q.toLowerCase().includes(k.toLowerCase()) ? s + 1 : s), 0);
+    const score = item.keys.reduce(
+      (s, k) => (q.toLowerCase().includes(k.toLowerCase()) ? s + 1 : s),
+      0,
+    );
     if (score > bestScore) {
       bestScore = score;
       best = item.a;
@@ -60,16 +63,23 @@ function ruleBasedTutor(question: string, ctx: { t: number; mode: string }): str
   return `好问题。我们一步步拆：先确定价格怎么变（P₁→P₂），再分别看消费者剩余和生产者剩余怎么动，最后加总看净福利。${contextLine} 你想先从哪一块开始？`;
 }
 
-const HistorySchema = z.array(
-  z.object({ role: z.enum(["user", "assistant"]), content: z.string().min(1).max(2000) }),
-).max(20);
+const HistorySchema = z
+  .array(
+    z.object({
+      role: z.enum(["user", "assistant"]),
+      content: z.string().min(1).max(2000),
+    }),
+  )
+  .max(20);
 
 export const askTutor = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
       question: z.string().min(1).max(2000),
       history: HistorySchema.default([]),
-      context: z.object({ t: z.number(), mode: z.string() }).default({ t: 20, mode: "accept" }),
+      context: z
+        .object({ t: z.number(), mode: z.string() })
+        .default({ t: 20, mode: "accept" }),
     }),
   )
   .handler(async ({ data }): Promise<{ reply: string; usedFallback: boolean }> => {
@@ -87,7 +97,8 @@ export const askTutor = createServerFn({ method: "POST" })
       const grounding = retrieve(data.question);
       const sys =
         "你是一位苏格拉底式的经济学原理课辅导老师，用中文，简短，多用提问引导，" +
-        "基于以下可靠知识点作答，不要编造：" + (grounding || "围绕供给需求与剩余分析。");
+        "基于以下可靠知识点作答，不要编造：" +
+        (grounding || "围绕供给需求与剩余分析。");
 
       const messages = [
         { role: "system", content: sys },
@@ -96,7 +107,10 @@ export const askTutor = createServerFn({ method: "POST" })
       ];
       const res = await fetch(`${base}/chat/completions`, {
         method: "POST",
-        headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
+        headers: {
+          "content-type": "application/json",
+          authorization: `Bearer ${apiKey}`,
+        },
         body: JSON.stringify({ model, messages, temperature: 0.4 }),
       });
       if (!res.ok) throw new Error(`llm ${res.status}`);

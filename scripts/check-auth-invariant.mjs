@@ -41,7 +41,8 @@ export function compareAuthInvariant({ devAuthEnabled, buildAuthEnabled }) {
   if (devAuthEnabled === null || devAuthEnabled === undefined) {
     return {
       status: "indeterminate",
-      message: "[auth-invariant] could not read the dev server's resolved VITE_AUTH_ENABLED",
+      message:
+        "[auth-invariant] could not read the dev server's resolved VITE_AUTH_ENABLED",
     };
   }
   if (devAuthEnabled === buildAuthEnabled) {

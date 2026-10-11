@@ -227,10 +227,7 @@ describe("gateIdentityFromHeaders", () => {
       );
       assert.equal(withToken?.sub, "user-1");
 
-      const withoutToken = await gateIdentityFromHeaders(
-        new Headers(),
-        fetchImpl,
-      );
+      const withoutToken = await gateIdentityFromHeaders(new Headers(), fetchImpl);
       assert.equal(withoutToken, null);
     } finally {
       delete process.env.GROK_PROJECT_ID;
@@ -317,11 +314,7 @@ describe("gateIdentityFromHeaders", () => {
     delete process.env.GROK_PROJECT_ID;
     process.env.GROK_GATE_ORIGIN = ISSUER;
     try {
-      const token = await signToken(
-        key,
-        { sub: "user-1" },
-        { audience: "preview" },
-      );
+      const token = await signToken(key, { sub: "user-1" }, { audience: "preview" });
       const identity = await gateIdentityFromHeaders(
         new Headers({ "x-grok-identity": token }),
         fetchImpl,
@@ -343,11 +336,7 @@ describe("gateIdentityFromHeaders", () => {
     process.env.GROK_PROJECT_ID = "proj-123";
     process.env.GROK_GATE_ORIGIN = ISSUER;
     try {
-      const token = await signToken(
-        key,
-        { sub: "user-1" },
-        { audience: "preview" },
-      );
+      const token = await signToken(key, { sub: "user-1" }, { audience: "preview" });
       const identity = await gateIdentityFromHeaders(
         new Headers({ "x-grok-identity": token }),
         fetchImpl,
