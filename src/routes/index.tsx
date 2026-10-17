@@ -10,6 +10,8 @@ import { TradeScene } from "@/components/scene3d/trade-scene";
 import { WorldTradeMap } from "@/components/worldmap/world-trade-map";
 import { RealDataPanel } from "@/components/realdata/real-data-panel";
 import { CausalPanel } from "@/components/causal/causal-panel";
+import { GamePanel } from "@/components/gametheory/game-panel";
+import { McPanel } from "@/components/montecarlo/mc-panel";
 import { TutorPanel } from "@/components/tutor/tutor-panel";
 import { SdChart } from "@/components/sd-chart";
 import { WelfareBoard } from "@/components/welfare-board";
@@ -33,10 +35,12 @@ function Home() {
         <SceneSec />
         <MapSec />
         <DataSec />
+        <GameSec />
+        <McSec />
         <CausalSec />
         <WelfareSec />
-        <TutorSec />
         <MultiSec />
+        <TutorSec />
         <QuizSec />
         <Finale />
       </main>
@@ -238,11 +242,37 @@ function DataSec() {
   );
 }
 
+function GameSec() {
+  return (
+    <Wrap
+      id="game"
+      no="06"
+      title="两国博弈：补贴与报复的纳什均衡"
+      sub="出口国补不补贴、进口国报不报复，是一场互相算计的博弈。调节补贴强度 t，看支付矩阵如何变化、稳定结局（纳什均衡）落在哪一格。"
+    >
+      <GamePanel />
+    </Wrap>
+  );
+}
+
+function McSec() {
+  return (
+    <Wrap
+      id="montecarlo"
+      no="07"
+      title="蒙特卡洛：把一个数字变成一种把握"
+      sub="补贴执行和外部需求都不确定。让参数在合理区间内随机波动，模拟成千上万种未来，得到净福利的分布、90% 区间和为正的概率。"
+    >
+      <McPanel />
+    </Wrap>
+  );
+}
+
 function CausalSec() {
   return (
     <Wrap
       id="causal"
-      no="06"
+      no="08"
       title="追问因果：是补贴导致了变化吗"
       sub="用双重差分和 Granger 检验把相关与因果分开，理解每种方法的前提。"
     >
@@ -255,7 +285,7 @@ function WelfareSec() {
   return (
     <Wrap
       id="welfare"
-      no="07"
+      no="09"
       title="三种选择：摆在 IS 政府面前的路"
       sub="同样的补贴强度，三种回应，三笔完全不同的账。"
     >
@@ -268,7 +298,7 @@ function MultiSec() {
   return (
     <Wrap
       id="multi"
-      no="05"
+      no="10"
       title="一起学：开个房间，同桌同屏"
       sub="和同学建立点对点连接，一个人操作，两个人的图表同步；适合课堂配对讨论。"
     >
@@ -281,7 +311,7 @@ function TutorSec() {
   return (
     <Wrap
       id="tutor"
-      no="09"
+      no="11"
       title="不懂就问：AI 辅导老师陪你练"
       sub="苏格拉底式提问引导，配置大模型 Key 后接真实模型，无 Key 时用内置导师。"
     >
@@ -294,7 +324,7 @@ function QuizSec() {
   return (
     <Wrap
       id="quiz"
-      no="04"
+      no="12"
       title="测一测：这页书你拿下了吗"
       sub="三道题，答完出结算。答错别怕，解析就是第二次讲解。"
     >
@@ -307,7 +337,7 @@ function Finale() {
   return (
     <Wrap
       id="final"
-      no="12"
+      no="13"
       title="结论：谢谢你的「不公平竞争」"
       sub="当邻居执意要补贴你买东西时，最好的回应不是报复，而是说声谢谢。"
     >

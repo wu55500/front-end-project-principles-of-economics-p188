@@ -58,6 +58,10 @@ docker run -d --name p188 --restart unless-stopped \
 curl -I http://<服务器IP>/
 ```
 
+> 生产真实 Nginx 配置（含分级限流 `limit_req`/`limit_conn`、全套安全响应头、
+> 敏感路径 404、fail2ban）已版本化到仓库 [`deploy/nginx/`](./deploy/nginx/)，
+> 内含安装命令，可在新服务器一键复现。
+
 ## 可平滑升级的方向
 
 - 绑定域名 + HTTPS（Let's Encrypt / certbot）
