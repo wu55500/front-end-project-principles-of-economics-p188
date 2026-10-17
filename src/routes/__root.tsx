@@ -5,6 +5,7 @@ import { I18nProvider } from "@/lib/i18n/i18n";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { RouteErrorComponent, RouteNotFoundComponent } from "@/components/route-error";
+import { InteractionFX } from "@/components/interaction-fx";
 import appCss from "../styles.css?url";
 
 const APP_NAME = "不公平竞争论 · 互动图解";
@@ -55,6 +56,7 @@ export const Route = createRootRoute({
       <body className="bg-bg text-fg font-sans">
         <GlobalMonitor />
         <PreviewHostBridge />
+        <InteractionFX />
         <I18nProvider>
           <AuthProvider>
             <Outlet />

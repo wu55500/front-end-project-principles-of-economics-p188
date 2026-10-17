@@ -17,6 +17,7 @@ const tests = [
   "src/lib/auth/sign-in-gate.test.ts",
   "src/lib/econ/model.test.ts",
   "src/lib/data/worldbank.test.ts",
+  "src/lib/fx/particle-field.test.ts",
 ];
 
 const args = [

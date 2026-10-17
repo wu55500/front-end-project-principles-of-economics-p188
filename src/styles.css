@@ -134,7 +134,8 @@
   .dev-panel,
   .kbd-help,
   .pres-hud,
-  canvas#heroBg {
+  canvas#heroBg,
+  .interaction-fx {
     display: none !important;
   }
   body {
