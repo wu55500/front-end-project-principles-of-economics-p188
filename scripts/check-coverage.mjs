@@ -18,6 +18,7 @@ const tests = [
   "src/lib/econ/model.test.ts",
   "src/lib/data/worldbank.test.ts",
   "src/lib/fx/particle-field.test.ts",
+  "src/lib/geo3d/arc.test.ts",
 ];
 
 const args = [

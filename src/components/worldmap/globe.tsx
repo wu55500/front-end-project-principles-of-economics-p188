@@ -12,16 +12,22 @@
  * land is one merged geometry, clouds are a procedural shader. Mobile
  * devices get a reduced pipeline so the WebGL context is never lost.
  */
-import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
+import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Stars, Billboard, Line } from "@react-three/drei";
 import { EffectComposer, Bloom } from "@react-three/postprocessing";
-import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import * as THREE from "three";
 import { feature } from "topojson-client";
 import earcut from "earcut";
 import type { FeatureCollection, Geometry, Position } from "geojson";
 import atlas from "@/assets/geo/countries-110m.json";
 import { useViz } from "@/store/viz";
+import { advancePhase, easedLerp, midDirection } from "@/lib/geo3d/arc";
+
+function prefersReducedMotion() {
+  if (typeof window === "undefined" || !window.matchMedia) return false;
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 const R = 2;
 const WORLD = atlas as unknown as { objects: { countries: never } };
@@ -305,6 +311,74 @@ function Cargo({
   );
 }
 
+/**
+ * Flowing-light comets riding the trade arc (visual complement to Cargo boxes).
+ * Additive-blended glowing head + fading tail, a fixed small budget per lane,
+ * speed ramps when selected / in trade-war mode, and it freezes under
+ * prefers-reduced-motion. Distinct from Cargo: boxes = freight, comets = flow.
+ */
+function FlowComet({
+  curve,
+  color,
+  count,
+  speed,
+  active,
+}: {
+  curve: THREE.CatmullRomCurve3;
+  color: string;
+  count: number;
+  speed: number;
+  active: boolean;
+}) {
+  const group = useRef<THREE.Group>(null);
+  const phases = useMemo(
+    () => Array.from({ length: count }, (_, i) => i / count),
+    [count],
+  );
+  // head + 3 tail links per comet, shared tiny geometries
+  const LINKS = 4;
+  useFrame((_, dt) => {
+    const g = group.current;
+    if (!g || !active || prefersReducedMotion()) return;
+    const d = Math.min(dt, 0.05);
+    g.children.forEach((comet, ci) => {
+      phases[ci] = advancePhase(phases[ci], speed, d);
+      const head = phases[ci];
+      comet.children.forEach((link, li) => {
+        // each link trails a little behind the head along the arc
+        let u = head - li * 0.028;
+        u = u < 0 ? u + 1 : u;
+        link.position.copy(curve.getPoint(u));
+        const mat = (link as THREE.Mesh).material as THREE.MeshBasicMaterial;
+        mat.opacity = (1 - li / LINKS) * 0.9;
+        const sc = 1 - li / (LINKS + 1);
+        link.scale.setScalar(sc);
+      });
+    });
+  });
+  return (
+    <group ref={group}>
+      {phases.map((_, i) => (
+        <group key={i}>
+          {Array.from({ length: LINKS }, (_, li) => (
+            <mesh key={li}>
+              <sphereGeometry args={[0.045, 10, 10]} />
+              <meshBasicMaterial
+                color={color}
+                transparent
+                opacity={0.9 - li * 0.2}
+                blending={THREE.AdditiveBlending}
+                depthWrite={false}
+                toneMapped={false}
+              />
+            </mesh>
+          ))}
+        </group>
+      ))}
+    </group>
+  );
+}
+
 function Route({
   def,
   pts,
@@ -354,6 +428,15 @@ function Route({
           color={def.cargoColor}
           count={Math.round(selected ? 16 : 10)}
           speed={0.055 * (selected ? 1.5 : 1)}
+        />
+      )}
+      {!isBlocked && (
+        <FlowComet
+          curve={curve}
+          color={def.color}
+          count={selected ? 3 : 2}
+          speed={selected ? 0.16 : war ? 0.12 : 0.09}
+          active
         />
       )}
       {/* pulsing midpoint beacon = obvious click target */}
@@ -617,6 +700,69 @@ const ROUTES: RouteDef[] = [
   },
 ];
 
+/**
+ * Smooth camera flight: when a lane is selected the camera flies to its arc
+ * midpoint (lightweight "drill-down"); clearing selection flies back to the
+ * global framing. Uses hand-rolled eased lerp (no GSAP/TWEEN dependency), and
+ * keeps OrbitControls' target in sync so post-flight orbiting feels natural.
+ */
+type CamGoal = { pos: THREE.Vector3; target: THREE.Vector3 };
+
+function CameraRig({
+  focus,
+  controlsRef,
+}: {
+  focus: THREE.Vector3 | null;
+  controlsRef: RefObject<{ target: THREE.Vector3; update: () => void } | null>;
+}) {
+  const camera = useThree((st) => st.camera);
+  const flight = useRef<{ from: CamGoal; to: CamGoal; t: number; dur: number } | null>(null);
+
+  const HOME_POS = useMemo(() => new THREE.Vector3(-6.6, 1.5, 2.45), []);
+  const HOME_TGT = useMemo(() => new THREE.Vector3(0, 0, 0), []);
+
+  useEffect(() => {
+    const from = {
+      pos: camera.position.clone(),
+      target: controlsRef.current?.target.clone() ?? new THREE.Vector3(0, 0, 0),
+    };
+    if (focus) {
+      // sit outside the focus point, closer than home but never inside globe
+      const dir = focus.clone().normalize();
+      const dist = 3.9;
+      const to = {
+        pos: dir.multiplyScalar(dist),
+        target: focus.clone().multiplyScalar(R / Math.max(focus.length(), 0.0001)),
+      };
+      flight.current = { from, to, t: 0, dur: 1.1 };
+    } else {
+      flight.current = { from, to: { pos: HOME_POS.clone(), target: HOME_TGT.clone() }, t: 0, dur: 1.1 };
+    }
+  }, [focus, camera, controlsRef, HOME_POS, HOME_TGT]);
+
+  useFrame((_, dt) => {
+    const f = flight.current;
+    if (!f) return;
+    f.t = Math.min(1, f.t + Math.min(dt, 0.05) / f.dur);
+    camera.position.set(
+      easedLerp(f.from.pos.x, f.to.pos.x, f.t),
+      easedLerp(f.from.pos.y, f.to.pos.y, f.t),
+      easedLerp(f.from.pos.z, f.to.pos.z, f.t),
+    );
+    const ctl = controlsRef.current;
+    if (ctl) {
+      ctl.target.set(
+        easedLerp(f.from.target.x, f.to.target.x, f.t),
+        easedLerp(f.from.target.y, f.to.target.y, f.t),
+        easedLerp(f.from.target.z, f.to.target.z, f.t),
+      );
+      ctl.update();
+    }
+    if (f.t >= 1) flight.current = null;
+  });
+  return null;
+}
+
 function Scene({
   war,
   selected,
@@ -639,6 +785,22 @@ function Scene({
     }
     return map;
   }, []);
+
+  const controlsRef = useRef(null) as RefObject<{
+    target: THREE.Vector3;
+    update: () => void;
+  } | null>;
+  const focus = useMemo(() => {
+    if (!selected) return null;
+    const pts = paths[selected];
+    if (!pts) return null;
+    const a = pts[0];
+    const b = pts[pts.length - 1];
+    const m = midDirection(a, b);
+    // lift the focus to the arc apex height so framing shows the whole lane
+    const apex = R + (ROUTES.find((r) => r.id === selected)?.lift ?? 0.5);
+    return new THREE.Vector3(m.x * apex, m.y * apex, m.z * apex);
+  }, [selected, paths]);
 
   return (
     <>
@@ -675,7 +837,9 @@ function Scene({
       <Dome lon={-118.24} lat={34.05} on={war} />
       <Dome lon={-104.3} lat={19.05} on={war} />
 
+      <CameraRig focus={focus} controlsRef={controlsRef} />
       <OrbitControls
+        ref={controlsRef as never}
         enablePan={false}
         minDistance={2.6}
         maxDistance={9}
@@ -740,6 +904,51 @@ function metrics(id: string, t: number, war: boolean) {
     status: war ? "直航被惩罚性关税阻断" : "直航",
     tone: COLORS.blocked,
   };
+}
+
+/** Smoothly tweens a displayed number toward its target (product-grade live feel). */
+function AnimatedNumber({
+  value,
+  digits = 0,
+  tone,
+  unit,
+}: {
+  value: number;
+  digits?: number;
+  tone?: string;
+  unit: string;
+}) {
+  const [shown, setShown] = useState(value);
+  const shownRef = useRef(value);
+  const raf = useRef<number | null>(null);
+  useEffect(() => {
+    if (prefersReducedMotion()) {
+      setShown(value);
+      return;
+    }
+    const from = shownRef.current;
+    const start = performance.now();
+    const dur = 520;
+    const tickFn = (now: number) => {
+      const k = Math.min(1, (now - start) / dur);
+      const e = 1 - Math.pow(1 - k, 3); // easeOutCubic
+      shownRef.current = from + (value - from) * e;
+      setShown(shownRef.current);
+      if (k < 1) raf.current = requestAnimationFrame(tickFn);
+    };
+    raf.current = requestAnimationFrame(tickFn);
+    return () => {
+      if (raf.current) cancelAnimationFrame(raf.current);
+    };
+  }, [value]);
+  return (
+    <span style={{ fontSize: 19, fontWeight: 800, color: tone ?? "#f2f0e9" }}>
+      {shown.toFixed(digits)}
+      <span style={{ fontSize: 10, fontWeight: 500, color: "#7d8a97", marginLeft: 4 }}>
+        {unit}
+      </span>
+    </span>
+  );
 }
 
 function Row({
@@ -863,12 +1072,18 @@ function Telemetry({
         </button>
       </div>
       <div style={{ fontSize: 11, color: m.tone, marginBottom: 2 }}>● {m.status}</div>
-      <Row
-        label="贸易额（实时）"
-        value={(m.flow * j1).toFixed(0)}
-        unit="亿美元/年"
-        tone={m.tone}
-      />
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          padding: "7px 0",
+          borderBottom: "1px solid rgba(255,255,255,.06)",
+        }}
+      >
+        <span style={{ fontSize: 12, color: "#9aa6b2" }}>贸易额（实时）</span>
+        <AnimatedNumber value={m.flow * j1} unit="亿美元/年" tone={m.tone} />
+      </div>
       <Row label="占美国进口份额" value={`${m.share}`} unit="%" />
       <Row
         label="适用关税"
