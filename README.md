@@ -4,7 +4,9 @@
 
 ## 在线体验
 
-**▶ 在线地址：http://139.155.132.81**（Docker + Nginx 云服务器部署，详见 [DEPLOYMENT.md](./DEPLOYMENT.md)）
+**▶ 在线地址：[http://139.155.132.81](http://139.155.132.81)**
+
+（Docker + Nginx 云服务器部署，详见 [DEPLOYMENT.md](./DEPLOYMENT.md)）
 
 本地运行：
 
