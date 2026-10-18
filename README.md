@@ -27,8 +27,7 @@ npm run dev
 | 参数与弹性     | 调节供需参数，实时计算弹性                         |
 | 真实数据       | 世界银行贸易指标（贸易/GDP、进出口、经常账户）     |
 | 因果推断       | DID、OLS、Granger 因果检验                         |
-| 3D 贸易场景    | Three.js：两国港口与货船随补贴变化                 |
-| 世界贸易视角   | 3D Three.js 地球 + 2D d3-geo 世界地图（可切换，全球纺织品贸易流） |
+| 3D 贸易场景    | Three.js 球面投影 + TopoJSON/earcut 陆地：三国港口、货流飞线随补贴/贸易战变化，点航线相机聚焦 |
 | 多人房间       | WebRTC P2P，无需 WebSocket                         |
 | AI 辅导        | 内置知识导师，可接 OpenAI 兼容接口                 |
 | 国际化         | 中文 / English                                     |
