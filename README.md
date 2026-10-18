@@ -8,6 +8,8 @@
 
 （Docker + Nginx 云服务器部署，详见 [DEPLOYMENT.md](./DEPLOYMENT.md)）
 
+> 📌 项目资产归属、独立查看/重新部署/收回访问权的说明：[docs/OWNERSHIP.md](./docs/OWNERSHIP.md)
+
 本地运行：
 
 \`\`\`bash
